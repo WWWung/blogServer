@@ -8,10 +8,16 @@ const port = 3000;
 const host = '127.0.0.8';
 
 http.createServer((req, res) => {
+
   //设置允许跨域
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.writeHead(200, {'Content-Type': 'text/json'});
-  console.log(req.session)
+  res.setHeader('Access-Control-Allow-Origin', 'http://localhost:8080');
+  res.setHeader('Access-Control-Allow-Credentials', true);
+  res.writeHead(200, {
+    'Content-Type': 'text/json',
+    'Set-Cookie': 'myCookie=test'
+  });
+
+  console.log(req.headers.cookie+'a')
   //处理url里包含的信息
   const baseName = url.parse(req.url, true).query.baseName;
   //请求的类型
