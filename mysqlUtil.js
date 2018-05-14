@@ -2,10 +2,10 @@ const mysql = require('mysql');
 
 //创建连接池
 const pool = mysql.createPool({
-  host: 'localhost',
-  port: 3306,
+  host: 'gz-cdb-jm7yuqdy.sql.tencentcdb.com',
+  port: 62691,
   user: 'root',
-  password: '',
+  password: 'wj531096404',
   database: 'blog'
 })
 

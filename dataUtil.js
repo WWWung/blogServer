@@ -1,7 +1,12 @@
 
 //处理post得来的数据：取键名、键值和问号用来组成sql语句
 exports.handleData = function (data, type) {
-  const target = JSON.parse(data);
+  let target = null;
+  try {
+    target = JSON.parse(data);
+  } catch (e) {
+    return '请效验数据格式'
+  }
   let keyStr = '';
   let values = [];
   let queMarks = '';

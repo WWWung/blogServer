@@ -11,17 +11,22 @@ http.createServer((req, res) => {
   //设置允许跨域
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.writeHead(200, {'Content-Type': 'text/json'});
+  console.log(req.session)
   //处理url里包含的信息
   const baseName = url.parse(req.url, true).query.baseName;
   //请求的类型
   const method = req.method.toLowerCase();
-  if( method === 'post' ){
+  if (method === 'post') {
     let postData = '';
     req.on('data', (chunk) => {
       postData += chunk;
     })
     req.on('end', () => {
       const data = dataUtil.handleData( postData );
+      if (typeof data === 'string') {
+        res.end(data);
+        return ;
+      }
       const selectSql = 'INSERT INTO ' + baseName + '(' + data.keyStr + ') VALUE(' + data.queMarks + ')';
       mysqlUtil.query(selectSql, data.values, () => {
         console.log('数据插入成功');
