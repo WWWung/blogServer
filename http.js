@@ -3,6 +3,7 @@ const url = require('url');
 
 const mysqlUtil = require('./mysqlUtil.js');//关于数据库的操作
 const dataUtil = require('./dataUtil.js');//处理数据格式
+const api = require('./api/api.js')
 
 const port = 3000;
 const host = '127.0.0.8';
@@ -14,12 +15,12 @@ http.createServer((req, res) => {
   res.setHeader('Access-Control-Allow-Credentials', true);
   res.writeHead(200, {
     'Content-Type': 'text/json',
-    'Set-Cookie': 'myCookie=test'
+    // 'Set-Cookie': 'myCookie=test'
   });
 
-  console.log(req.headers.cookie+'a')
   //处理url里包含的信息
   const baseName = url.parse(req.url, true).query.baseName;
+  console.log(req.url)
   //请求的类型
   const method = req.method.toLowerCase();
   if (method === 'post') {
@@ -42,11 +43,12 @@ http.createServer((req, res) => {
   }else if( method === 'get' ){
     const selectSql = 'SELECT * FROM ' + baseName;
     let data = null;
-    mysqlUtil.query(selectSql, null, (rsl) => {
-      data = rsl;
-      console.log('数据查询成功');
-      res.end(JSON.stringify(data));
-    })
+    // mysqlUtil.query(selectSql, null, (rsl) => {
+    //   data = rsl;
+    //   console.log('数据查询成功');
+    //   res.end(JSON.stringify(data));
+    // })
+    api.queryData(req, res, baseName);
   }
 }).listen(port, host);
 console.log('Server running at http:' + host + ':' + port);
