@@ -1,13 +1,19 @@
-const users = require(./users/users.json);
-
+const fs = require('fs');
+const users = require('./users/users.json');
 const session = {
   getSession () {
     return users;
-  }
-  setSession (user, users) {
+  },
+  setSession (user) {
+    if (this.querySession(user, users)){
+      return;
+    }
     users.push(user);
-  }
-  querySession (user, users) {
+    fs.writeFileSync('./users/users.json', JSON.stringify(users), (err) => {
+      console.log(err)
+    })
+  },
+  querySession (user) {
     let rsl = false;
     for(let i=0; i<users.length; i++){
       if (user.sessionId === users[i].sessionId) {
