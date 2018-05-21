@@ -22,7 +22,6 @@ http.createServer((req, res) => {
   const urlInfo = url.parse(req.url, true);
   const baseName = urlInfo.query.baseName;
   const reqName = urlInfo.pathname.substring(1);
-  console.log(reqName)
   //请求的类型
   const method = req.method.toLowerCase();
   if (method === 'post') {
@@ -33,7 +32,16 @@ http.createServer((req, res) => {
       res.writeHead(200, {
         'Content-Type': 'text/json'
       })
-      api.insertData(req, res, 'article');
+      api.insertDataToArticle(req, res);
+    }
+    if(reqName === 'register'){
+      api.registerUser(req, res);
+    }
+    if(reqName === 'isLogin'){
+      api.isLogin(req, res);
+    }
+    if(reqName === 'portrait'){
+      api.getPortrait(req, res);
     }
   }else if( method === 'get' ){
     const selectSql = 'SELECT * FROM ' + baseName;

@@ -13,11 +13,11 @@ const session = {
       console.log(err)
     })
   },
-  querySession (user) {
-    let rsl = false;
+  querySession (sessionId) {
+    let rsl = null;
     for(let i=0; i<users.length; i++){
-      if (user.sessionId === users[i].sessionId) {
-        rsl = true;
+      if (sessionId === users[i].sessionId) {
+        rsl = users[i];
         break;
       }
     }
