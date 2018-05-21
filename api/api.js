@@ -127,10 +127,24 @@ let api = {
     //保留文件扩展名
     form.keepExtensions = true;
     form.encoding = 'utf-8';
+
+    //  这一步是设置文件上传处理之后的保存位置
+    form.uploadDir = path.join(__dirname, '../imgs')
     form.parse(req, (err, fields, files) => {
-      console.log(files.portrait);
-      fs.renameSync(files.portrait.path, '../imgs/'+files.portrait.name)
-      res.end('图片上传成功')
+      if (err) {
+        console.log(err);
+        return false;
+      }
+
+      //  由于文件保存之后会自动随机生成一个名字，所以利用nodejs的rename方法更改为上传时候的文件名
+      fs.rename(files.portrait.path, path.join(__dirname, '../imgs/'+files.portrait.name), (err) => {
+        if(err){
+          console.log(err);
+          res.end('图片上传失败');
+        }else{
+          res.end('图片上传成功');
+        }
+      });
     })
   }
 }
