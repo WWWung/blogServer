@@ -5,7 +5,8 @@ const session = {
     return users;
   },
   setSession (user) {
-    if (this.querySession(user, users)){
+    console.log(this.querySession(user.sessionId))
+    if (this.querySession(user.sessionId)){
       return;
     }
     users.push(user);

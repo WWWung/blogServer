@@ -24,29 +24,34 @@ http.createServer((req, res) => {
   const reqName = urlInfo.pathname.substring(1);
   //请求的类型
   const method = req.method.toLowerCase();
-  if (method === 'post') {
-    if(reqName === 'loginIn'){
-      api.loginIn(req, res);
-    }
-    if(reqName === 'submitArticle'){
-      res.writeHead(200, {
-        'Content-Type': 'text/json'
-      })
-      api.insertDataToArticle(req, res);
-    }
-    if(reqName === 'register'){
-      api.registerUser(req, res);
-    }
-    if(reqName === 'isLogin'){
-      api.isLogin(req, res);
-    }
-    if(reqName === 'portrait'){
-      api.getPortrait(req, res);
-    }
-  }else if( method === 'get' ){
-    const selectSql = 'SELECT * FROM ' + baseName;
-    let data = null;
-    api.queryData(req, res, baseName);
+
+  if(reqName === 'loginIn'){
+    api.loginIn(req, res);
+  }
+  if(reqName === 'submitArticle'){
+    res.writeHead(200, {
+      'Content-Type': 'text/json'
+    })
+    api.insertDataToArticle(req, res);
+  }
+  if(reqName === 'register'){
+    api.registerUser(req, res);
+  }
+  if(reqName === 'isLogin'){
+    api.isLogin(req, res);
+  }
+  if(reqName === 'portrait'){
+    api.getPortrait(req, res);
+  }
+  if(reqName === 'articles'){
+    api.queryArticlesData(req, res);
+  }
+  if(reqName === 'article'){
+    console.log(urlInfo.query.id)
+    api.getBlogById(req, res, urlInfo.query.id);
+  }
+  if(reqName.indexOf('imgs') > -1){
+    api.returnImg(req, res, reqName);
   }
 }).listen(port, host);
 console.log('Server running at http:' + host + ':' + port);

@@ -13,13 +13,14 @@ const crypto = require('crypto');
 
 let api = {
   //查询数据并返回
-  queryData (req, res, base) {
-    const selectSql = 'SELECT * FROM ' + base;
+  queryArticlesData (req, res) {
+    const selectSql = 'SELECT * FROM article';
     mysqlUtil.query(selectSql, null, (rsl) => {
       console.log('数据查询成功');
       res.end(JSON.stringify(rsl));
     })
   },
+  //  新增博客
   insertDataToArticle (req, res, base) {
     let postData = '';
     req.on('data', (chunk) => {
@@ -60,7 +61,7 @@ let api = {
         const sessionId = hash.digest('hex');
         res.writeHead(200, {
           'Content-Type': 'text/json',
-          'Set-Cookie': 'sessionId=' + sessionId + ';Max-Age=60'
+          'Set-Cookie': 'sessionId=' + sessionId + ';Max-Age=86400'
         })
         session.setSession(Object.assign({
           sessionId
@@ -69,10 +70,8 @@ let api = {
       })
     })
   },
+  //  判断是否登录
   isLogin (req, res) {
-    res.writeHead(200, {
-      'Content-Type': 'image/png'
-    })
     req.on('data', (chunk) => {
       console.log(chunk)
     })
@@ -80,7 +79,6 @@ let api = {
       if (req.headers.cookie) {
         const sessionId = req.headers.cookie.split('=')[1];
         const user = session.querySession(sessionId);
-        console.log(sessionId)
         res.end(JSON.stringify(user));
         return;
       }
@@ -110,12 +108,11 @@ let api = {
           const sessionId = hash.digest('hex');
           res.writeHead(200, {
             'Content-Type': 'text/json',
-            'Set-Cookie': 'sessionId=' + sessionId + ';Max-Age=60'
+            'Set-Cookie': 'sessionId=' + sessionId + ';Max-Age=86400'
           })
           session.setSession(Object.assign({
             sessionId
           }, user));
-          console.log('账号注册成功');
           res.end('账号注册成功');
         })
       })
@@ -142,9 +139,50 @@ let api = {
           console.log(err);
           res.end('图片上传失败');
         }else{
-          res.end('图片上传成功');
+          res.end(files.portrait.name);
         }
       });
+    })
+  },
+  //  返回图片
+  returnImg (req, res, reqName) {
+    const imgName = reqName.split('/')[1];
+    const imgSrc = path.join(__dirname, '../imgs/'+imgName);
+    fs.readFile(imgSrc, (err, data) => {
+      if(err){
+        console.log(imgSrc)
+        console.log(err)
+        res.end();
+      }else{
+        let stream = fs.createReadStream(imgSrc);
+        let resData = [];
+        if(stream){
+          stream.on('data', (chunk) => {
+            resData.push(chunk)
+          })
+          stream.on('end', () => {
+            const finalData = Buffer.concat(resData);
+            res.end(finalData);
+          })
+        }
+      }
+    })
+  },
+  //  根据id获取某一篇博文
+  getBlogById (req, res, id) {
+    const selectSql = 'select * from article where id=' + id;
+    mysqlUtil.query(selectSql, null, (rsl) => {
+      if (!rsl.length) {
+        res.writeHead(404, {
+          'Content-Type': 'text/plain'
+        })
+        res.end('页面未找到');
+        return;
+      }
+      res.writeHead(200, {
+        'Content-Type': 'text/plain'
+      })
+      res.end(JSON.stringify(rsl[0]))
     })
   }
 }
