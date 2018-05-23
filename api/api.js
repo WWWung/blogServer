@@ -1,5 +1,6 @@
 //用户登录—前端发送登录请求—后端保存用户 cookies—页面刷新 —前端判断用户id存在—显示登录状态—用户退出—前端发送退出请求–后端清空用户cookies—页面刷新—前端判断用户id不存在—-显示需要登录的界面
 
+//  工具类
 const mysqlUtil = require('../mysqlUtil.js');
 const dataUtil = require('../dataUtil.js');
 const session = require('../session.js');
@@ -17,12 +18,13 @@ let api = {
   queryArticlesData (req, res) {
     const selectSql = 'SELECT * FROM article';
     mysqlUtil.query(selectSql, null, (rsl) => {
-      console.log('数据查询成功');
+      console.log(this.loginIn)
+      console.log('博客列表查询成功');
       res.end(JSON.stringify(rsl));
     })
   },
   //  新增博客
-  insertDataToArticle (req, res, base) {
+  insertDataToArticle (req, res) {
     res.writeHead(200, {
       'Content-Type': 'text/json'
     })
@@ -34,7 +36,7 @@ let api = {
       const sqlData = dataUtil.handleData(postData);
       const selectSql = 'INSERT INTO article' + '(' + sqlData.keyStr + ') VALUE(' + sqlData.queMarks + ')';
       mysqlUtil.query(selectSql, sqlData.values, () => {
-        console.log('数据插入成功');
+        console.log('博客提交成功');
         res.end();
       });
     })
@@ -187,7 +189,7 @@ let api = {
       res.writeHead(200, {
         'Content-Type': 'text/plain'
       })
-      res.end(JSON.stringify(rsl[0]))
+      this.getCommentsByBlogId(req, res, rsl[0]);
     })
   },
   //  退出登录
@@ -201,7 +203,20 @@ let api = {
         })
         res.end('已登出');
       }
-    }
+    },
+  //  返回评论
+  getCommentsByBlogId (req, res, blog) {
+    const sql = "select * from comment where blogId=" + blog.id;
+    mysqlUtil.query(sql, null, (rsl) => {
+      console.log('博客评论查询成功');
+      blog.comments = rsl;
+      res.end(JSON.stringify(blog));
+    })
+  },
+  //  提交评论
+  insertCommentToBlog (req, res, blogId) {
+
+  }
 }
 
 module.exports = api;
