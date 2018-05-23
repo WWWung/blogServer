@@ -5,14 +5,12 @@ const session = {
     return users;
   },
   setSession (user) {
-    console.log(this.querySession(user.sessionId))
     if (this.querySession(user.sessionId)){
-      return;
+      return false;
     }
     users.push(user);
-    fs.writeFileSync('./users/users.json', JSON.stringify(users), (err) => {
-      console.log(err)
-    })
+    fs.writeFileSync('./users/users.json', JSON.stringify(users));
+    return true;
   },
   querySession (sessionId) {
     let rsl = null;
@@ -23,6 +21,21 @@ const session = {
       }
     }
     return rsl;
+  },
+  deleteSession (sessionId) {
+    let index = null;
+    for(i=0; i<users.length; i++){
+      if(users[i].sessionId === sessionId){
+        index = i;
+        break;
+      }
+    }
+    if(index !== null){
+      users.splice(index, 1);
+      fs.writeFileSync('./users/user.json', JSON.stringify(users));
+      return true;
+    }
+    return false;
   }
 }
 module.exports = session;

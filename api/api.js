@@ -3,6 +3,7 @@
 const mysqlUtil = require('../mysqlUtil.js');
 const dataUtil = require('../dataUtil.js');
 const session = require('../session.js');
+const cookieUtil = require('../utils/cookieUtil.js');
 
 //处理上传的文件
 const fs = require('fs');
@@ -22,6 +23,9 @@ let api = {
   },
   //  新增博客
   insertDataToArticle (req, res, base) {
+    res.writeHead(200, {
+      'Content-Type': 'text/json'
+    })
     let postData = '';
     req.on('data', (chunk) => {
       postData += chunk;
@@ -42,8 +46,8 @@ let api = {
       postData += chunk;
     })
     req.on('end', () => {
-      if (req.headers.cookie){
-        const sessionId = req.headers.cookie.split('=')[1];
+      let sessionId = cookieUtil.getSessionIdfromCookie(req.headers.cookie);
+      if (req.headers.cookie && sessionId){
         const user = session.querySession(sessionId);
         res.end(JSON.stringify(user));
         return;
@@ -76,8 +80,9 @@ let api = {
       console.log(chunk)
     })
     req.on('end', () => {
-      if (req.headers.cookie) {
-        const sessionId = req.headers.cookie.split('=')[1];
+      const sessionId = cookieUtil.getSessionIdfromCookie(req.headers.cookie);
+      console.log(req.headers.cookie)
+      if (req.headers.cookie && sessionId) {
         const user = session.querySession(sessionId);
         res.end(JSON.stringify(user));
         return;
@@ -184,7 +189,19 @@ let api = {
       })
       res.end(JSON.stringify(rsl[0]))
     })
-  }
+  },
+  //  退出登录
+  loginOut (req, res) {
+      if (!req.headers.cookie) {
+        res.end();
+      } else {
+        res.writeHead(200, {
+          'Content-Type': 'text/json',
+          'Set-Cookie': 'sessionId=;expires=Thu, 01 Jan 1970 00:00:00 GMT'
+        })
+        res.end('已登出');
+      }
+    }
 }
 
 module.exports = api;
