@@ -12,13 +12,12 @@ const formidable = require('formidable');
 const path = require('path');
 //md5加密模块
 const crypto = require('crypto');
-
+let count = 0;
 let api = {
   //查询数据并返回
   queryArticlesData (req, res) {
     const selectSql = 'SELECT * FROM article';
     mysqlUtil.query(selectSql, null, (rsl) => {
-      console.log(this.loginIn)
       console.log('博客列表查询成功');
       res.end(JSON.stringify(rsl));
     })
@@ -175,7 +174,7 @@ let api = {
       }
     })
   },
-  //  根据id获取某一篇博文
+  //  根据id获取某一篇博文及其评论
   getBlogById (req, res, id) {
     const selectSql = 'select * from article where id=' + id;
     mysqlUtil.query(selectSql, null, (rsl) => {
@@ -187,8 +186,9 @@ let api = {
         return;
       }
       res.writeHead(200, {
-        'Content-Type': 'text/plain'
+        'Content-Type': 'text/json'
       })
+      //  提取博客下的评论
       this.getCommentsByBlogId(req, res, rsl[0]);
     })
   },
@@ -204,18 +204,30 @@ let api = {
         res.end('已登出');
       }
     },
-  //  返回评论
+  //  根据博客id获取相应的评论
   getCommentsByBlogId (req, res, blog) {
     const sql = "select * from comment where blogId=" + blog.id;
     mysqlUtil.query(sql, null, (rsl) => {
       console.log('博客评论查询成功');
       blog.comments = rsl;
-      res.end(JSON.stringify(blog));
+      const data = JSON.stringify(blog);
+      res.end(data);
     })
   },
   //  提交评论
   insertCommentToBlog (req, res, blogId) {
-
+    let postData = '';
+    req.on('data', (chunk) => {
+      postData += chunk;
+    })
+    req.on('end', () => {
+      const sqlData = dataUtil.handleData(postData);
+      const sql = 'insert into comment (' + sqlData.keyStr + ') value(' + sqlData.queMarks + ')';
+      mysqlUtil.query(sql, sqlData.values, (rsl) => {
+        console.log('评论成功');
+        res.end(JSON.stringify(rsl));
+      })
+    })
   }
 }
 

@@ -7,9 +7,8 @@ const api = require('./api/api.js')
 
 const port = 3000;
 const host = '127.0.0.8';
-
+let count = 0;
 http.createServer((req, res) => {
-
   //设置允许跨域
   res.setHeader('Access-Control-Allow-Origin', 'http://localhost:8080');
   res.setHeader('Access-Control-Allow-Credentials', true);
@@ -20,7 +19,6 @@ http.createServer((req, res) => {
   const reqName = urlInfo.pathname.substring(1);
   //请求的类型
   const method = req.method.toLowerCase();
-
   if(reqName === 'loginIn'){//  登录
     api.loginIn(req, res);
   }
@@ -47,6 +45,9 @@ http.createServer((req, res) => {
   }
   if(reqName === 'loginOut'){// 退出登录
     api.loginOut(req, res);
+  }
+  if(reqName === 'subComent'){
+    api.insertCommentToBlog(req, res);
   }
 }).listen(port, host);
 console.log('Server running at http:' + host + ':' + port);

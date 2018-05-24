@@ -9,7 +9,7 @@ const pool = mysql.createPool({
   database: 'blog'
 })
 
-//增删改差函数
+//增删改查函数
 exports.query = function (selectSql, params, callback) {
   pool.getConnection((err, con) => {
     if( err ){
@@ -22,6 +22,8 @@ exports.query = function (selectSql, params, callback) {
         console.log('数据库查询出错');
         return;
       }
+      con.release();
+      //  释放链接（如果不加这句代码，访问十次数据库之后就会访问不上）
       if( typeof callback === 'function' ){
         callback(rsl);
       }
