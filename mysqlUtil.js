@@ -10,13 +10,13 @@ const pool = mysql.createPool({
 })
 
 //增删改查函数
-exports.query = function (selectSql, params, callback) {
+exports.query = function (selectSql, callback) {
   pool.getConnection((err, con) => {
     if( err ){
       console.log('连接数据库出错');
       return;
     }
-    con.query(selectSql, params, (cerr, rsl, fields) => {
+    con.query(selectSql, (cerr, rsl, fields) => {
       if( cerr ){
         console.log(cerr)
         console.log('数据库查询出错');

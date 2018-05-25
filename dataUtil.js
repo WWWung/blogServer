@@ -1,25 +1,23 @@
 
-//处理post得来的数据：取键名、键值和问号用来组成sql语句
-exports.handleData = function (data, type) {
+//  如果是数字,null或者undefined就不做任何处理，如果是字符串就在两边加上 ' 符号
+const handleValue = value => typeof value === 'number' || value === null || value === undefined ? value : "'" + value + "'";
+
+//  处理post得来的数据：取键名、键值和问号用来组成sql语句
+exports.handleData =  (data, type) => {
   let target = null;
-  try {
-    target = JSON.parse(data);
-  } catch (e) {
-    return '请效验数据格式'
+  if(typeof data === 'string'){
+    try {
+      target = JSON.parse(data);
+    } catch (e) {
+      return '请效验数据格式'
+    }
+  }else if(typeof data === 'object'){
+    target = data;
   }
   let keyStr = '';
-  let values = [];
-  let queMarks = '';
   for(let key in target){
-    keyStr += ',' + key;
-    values.push( target[key] );
-    queMarks += ',?';
+    keyStr += ',' + key + '=' + handleValue(target[key]);
   }
-  queMarks = queMarks.slice(1);
   keyStr = keyStr.slice(1);
-  return {
-    keyStr,
-    values,
-    queMarks
-  }
+  return keyStr
 }

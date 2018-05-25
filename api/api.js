@@ -17,7 +17,7 @@ let api = {
   //查询数据并返回
   queryArticlesData (req, res) {
     const selectSql = 'SELECT * FROM article';
-    mysqlUtil.query(selectSql, null, (rsl) => {
+    mysqlUtil.query(selectSql, (rsl) => {
       console.log('博客列表查询成功');
       res.end(JSON.stringify(rsl));
     })
@@ -33,8 +33,8 @@ let api = {
     })
     req.on('end', () => {
       const sqlData = dataUtil.handleData(postData);
-      const selectSql = 'INSERT INTO article' + '(' + sqlData.keyStr + ') VALUE(' + sqlData.queMarks + ')';
-      mysqlUtil.query(selectSql, sqlData.values, () => {
+      const selectSql = 'INSERT INTO article set ' + sqlData;
+      mysqlUtil.query(selectSql, () => {
         console.log('博客提交成功');
         res.end();
       });
@@ -55,7 +55,7 @@ let api = {
       }
       const user = JSON.parse(postData);
       const selectSql = "select * from users where name='" + user.name + "' limit 1" ;
-      mysqlUtil.query(selectSql, null, (rsl) => {
+      mysqlUtil.query(selectSql, (rsl) => {
         if (!rsl.length || rsl[0].pwd !== user.psw) {
           res.end('账号或密码错误');
           return;
@@ -107,7 +107,7 @@ let api = {
         }
         //验证通过之后设置session并返回消息
         const sqlData = dataUtil.handleData(postData);
-        const selectSql = "insert into users (" + sqlData.keyStr + ") value(" + sqlData.queMarks + ")";
+        const selectSql = "insert into users set " + sqlData;
         mysqlUtil.query(selectSql, sqlData.values, () => {
           const hash = crypto.createHash('md5');
           hash.update(user.name);
@@ -177,7 +177,7 @@ let api = {
   //  根据id获取某一篇博文及其评论
   getBlogById (req, res, id) {
     const selectSql = 'select * from article where id=' + id;
-    mysqlUtil.query(selectSql, null, (rsl) => {
+    mysqlUtil.query(selectSql, (rsl) => {
       if (!rsl.length) {
         res.writeHead(404, {
           'Content-Type': 'text/plain'
@@ -207,7 +207,7 @@ let api = {
   //  根据博客id获取相应的评论
   getCommentsByBlogId (req, res, blog) {
     const sql = "select * from comment where blogId=" + blog.id;
-    mysqlUtil.query(sql, null, (rsl) => {
+    mysqlUtil.query(sql, (rsl) => {
       console.log('博客评论查询成功');
       blog.comments = rsl;
       const data = JSON.stringify(blog);
@@ -222,10 +222,28 @@ let api = {
     })
     req.on('end', () => {
       const sqlData = dataUtil.handleData(postData);
-      const sql = 'insert into comment (' + sqlData.keyStr + ') value(' + sqlData.queMarks + ')';
-      mysqlUtil.query(sql, sqlData.values, (rsl) => {
+      const sql = 'insert into comment set ' + sqlData;
+      console.log(sql)
+      mysqlUtil.query(sql, () => {
         console.log('评论成功');
-        res.end(JSON.stringify(rsl));
+        res.end();
+      })
+    })
+  },
+  editUserInfo (req, res) {
+    let postData = '';
+    req.on('data', chunk => {
+      postData += chunk;
+    })
+    req.on('end', () => {
+      let user = JSON.parse(postData);
+      const id = user.id;
+      delete user.id;
+      const sqlData = dataUtil.handleData(user);
+      const sql = 'update users set ' + sqlData + ' where id=' + id;
+      console.log(sql)
+      mysqlUtil.query(sql, () => {
+        console.log('个人信息更新成功');
       })
     })
   }

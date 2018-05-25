@@ -49,5 +49,8 @@ http.createServer((req, res) => {
   if(reqName === 'subComent'){
     api.insertCommentToBlog(req, res);
   }
+  if(reqName === 'editInfo'){
+    api.editUserInfo(req, res);
+  }
 }).listen(port, host);
 console.log('Server running at http:' + host + ':' + port);
