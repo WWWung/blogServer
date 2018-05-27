@@ -100,7 +100,7 @@ let api = {
     req.on('end', () => {
       const user = JSON.parse(postData);
       const selectSql = "select * from users where name='" + user.name + "' limit 1 ";
-      mysqlUtil.query(selectSql, null, (rsl) => {
+      mysqlUtil.query(selectSql, (rsl) => {
         if (rsl.length) {
           res.end('账号已存在');
           return;
@@ -108,7 +108,7 @@ let api = {
         //验证通过之后设置session并返回消息
         const sqlData = dataUtil.handleData(postData);
         const selectSql = "insert into users set " + sqlData;
-        mysqlUtil.query(selectSql, sqlData.values, () => {
+        mysqlUtil.query(selectSql, () => {
           const hash = crypto.createHash('md5');
           hash.update(user.name);
           const sessionId = hash.digest('hex');
@@ -215,7 +215,7 @@ let api = {
     })
   },
   //  提交评论
-  insertCommentToBlog (req, res, blogId) {
+  insertCommentToBlog (req, res) {
     let postData = '';
     req.on('data', (chunk) => {
       postData += chunk;
@@ -230,6 +230,7 @@ let api = {
       })
     })
   },
+  //  修改个人信息
   editUserInfo (req, res) {
     let postData = '';
     req.on('data', chunk => {
@@ -241,9 +242,15 @@ let api = {
       delete user.id;
       const sqlData = dataUtil.handleData(user);
       const sql = 'update users set ' + sqlData + ' where id=' + id;
-      console.log(sql)
       mysqlUtil.query(sql, () => {
         console.log('个人信息更新成功');
+        //  更新session
+        const sessionId = cookieUtil.getSessionIdfromCookie(req.headers.cookie);
+        session.deleteSession(sessionId);
+        session.setSession(Object.assign(user, {
+          sessionId
+        }))
+        res.end();
       })
     })
   }
