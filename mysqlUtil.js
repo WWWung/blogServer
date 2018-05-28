@@ -1,5 +1,8 @@
 const mysql = require('mysql');
 
+//  promise的包,具体如何promise化query函数还在构思 zzz
+// const Q = require('q');
+
 //创建连接池
 const pool = mysql.createPool({
   host: 'gz-cdb-jm7yuqdy.sql.tencentcdb.com',

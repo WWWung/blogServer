@@ -11,6 +11,7 @@ let count = 0;
 http.createServer((req, res) => {
   //设置允许跨域
   res.setHeader('Access-Control-Allow-Origin', 'http://localhost:8080');
+  //  为了跨域设置cookie
   res.setHeader('Access-Control-Allow-Credentials', true);
 
   //处理url里包含的信息

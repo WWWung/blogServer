@@ -6,13 +6,15 @@ const dataUtil = require('../dataUtil.js');
 const session = require('../session.js');
 const cookieUtil = require('../utils/cookieUtil.js');
 
-//处理上传的文件
+//  处理上传的文件
 const fs = require('fs');
 const formidable = require('formidable');
 const path = require('path');
-//md5加密模块
+
+//  md5加密模块
 const crypto = require('crypto');
-let count = 0;
+
+//  正式代码
 let api = {
   //查询数据并返回
   queryArticlesData (req, res) {
@@ -66,7 +68,8 @@ let api = {
         const sessionId = hash.digest('hex');
         res.writeHead(200, {
           'Content-Type': 'text/json',
-          'Set-Cookie': 'sessionId=' + sessionId + ';Max-Age=86400'
+          //  如果没有httpOnly这个属性的话，那么在浏览器application里会找不到cookie，只能在network里请求的详细信息里看到
+          'Set-Cookie': 'sessionId=' + sessionId + ';Max-Age=86400;httpOnly:false'
         })
         session.setSession(Object.assign({
           sessionId
@@ -82,7 +85,6 @@ let api = {
     })
     req.on('end', () => {
       const sessionId = cookieUtil.getSessionIdfromCookie(req.headers.cookie);
-      console.log(req.headers.cookie)
       if (req.headers.cookie && sessionId) {
         const user = session.querySession(sessionId);
         res.end(JSON.stringify(user));
