@@ -53,5 +53,9 @@ http.createServer((req, res) => {
   if(reqName === 'editInfo'){
     api.editUserInfo(req, res);
   }
+  console.log(reqName)
+  if(reqName === 'self'){
+    api.selfInfo(req, res, urlInfo.query.name)
+  }
 }).listen(port, host);
 console.log('Server running at http:' + host + ':' + port);

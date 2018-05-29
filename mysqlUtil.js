@@ -9,7 +9,8 @@ const pool = mysql.createPool({
   port: 62691,
   user: 'root',
   password: 'wj531096404',
-  database: 'blog'
+  database: 'blog',
+  multipleStatements: true
 })
 
 //增删改查函数

@@ -255,6 +255,19 @@ let api = {
         res.end();
       })
     })
+  },
+  //  查看个人信息
+  selfInfo (req, res, name) {
+    const sql = 'select * from users where name="' + name + '"';
+    mysqlUtil.query(sql, rsl => {
+      if (rsl.length) {
+        console.log('查看个人信息成功');
+        res.end(JSON.stringify(rsl[0]));
+      } else {
+        console.log('查看个人信息失败');
+        res.end('账号不存在');
+      }
+    })
   }
 }
 
