@@ -241,7 +241,6 @@ let api = {
     req.on('end', () => {
       let user = JSON.parse(postData);
       const id = user.id;
-      delete user.id;
       const sqlData = dataUtil.handleData(user);
       const sql = 'update users set ' + sqlData + ' where id=' + id;
       mysqlUtil.query(sql, () => {

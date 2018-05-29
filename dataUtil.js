@@ -16,6 +16,9 @@ exports.handleData =  (data, type) => {
   }
   let keyStr = '';
   for(let key in target){
+    if(key === 'id'){
+      continue;
+    }
     keyStr += ',' + key + '=' + handleValue(target[key]);
   }
   keyStr = keyStr.slice(1);

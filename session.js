@@ -32,7 +32,7 @@ const session = {
     }
     if(index !== null){
       users.splice(index, 1);
-      fs.writeFileSync('./users/user.json', JSON.stringify(users));
+      fs.writeFileSync('./users/users.json', JSON.stringify(users));
       return true;
     }
     return false;
