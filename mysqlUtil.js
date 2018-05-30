@@ -10,18 +10,18 @@ const pool = mysql.createPool({
   user: 'root',
   password: 'wj531096404',
   database: 'blog',
-  multipleStatements: true
+  multipleStatements: true  //  这个属性设置为true之后可以执行多条sql语句，以；分割
 })
 
 //增删改查函数
 exports.query = function (selectSql, callback) {
   pool.getConnection((err, con) => {
-    if( err ){
+    if(err){
       console.log('连接数据库出错');
       return;
     }
     con.query(selectSql, (cerr, rsl, fields) => {
-      if( cerr ){
+      if(cerr){
         console.log(cerr)
         console.log('数据库查询出错');
         return;
@@ -34,3 +34,9 @@ exports.query = function (selectSql, callback) {
     })
   })
 }
+
+/*
+*
+*以id7为例查询id为7及上一篇和下一篇的博客sql语句
+*'select * from article where id = 7; select * from article where id < 7 order by id desc limit 1; select * from article where id > 7 order by id asc limit 1'
+*/

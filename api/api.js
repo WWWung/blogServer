@@ -178,9 +178,10 @@ let api = {
   },
   //  根据id获取某一篇博文及其评论
   getBlogById (req, res, id) {
-    const selectSql = 'select * from article where id=' + id;
-    mysqlUtil.query(selectSql, (rsl) => {
-      if (!rsl.length) {
+    const sql = 'select * from article where id = ' + id + '; select * from article where id < ' + id + ' order by id desc limit 1; select * from article where id > ' + id + ' order by id asc limit 1'
+    mysqlUtil.query(sql, rsl => {
+      //  执行多条sql语句的时候返回值是一个数组，数组项是依次执行查询语句的结果
+      if (!rsl[0].length) {
         res.writeHead(404, {
           'Content-Type': 'text/plain'
         })
@@ -191,7 +192,12 @@ let api = {
         'Content-Type': 'text/json'
       })
       //  提取博客下的评论
-      this.getCommentsByBlogId(req, res, rsl[0]);
+      let data = {
+        current: rsl[0][0],
+        prev: rsl[1].length?rsl[1][0]:null,
+        next: rsl[2].length?rsl[2][0]:null
+      }
+      this.getCommentsByBlogId(req, res, data);
     })
   },
   //  退出登录
@@ -207,13 +213,13 @@ let api = {
       }
     },
   //  根据博客id获取相应的评论
-  getCommentsByBlogId (req, res, blog) {
-    const sql = "select * from comment where blogId=" + blog.id;
-    mysqlUtil.query(sql, (rsl) => {
+  getCommentsByBlogId (req, res, data) {
+    const sql = "select * from comment where blogId=" + data.current.id;
+    mysqlUtil.query(sql, rsl => {
       console.log('博客评论查询成功');
-      blog.comments = rsl;
-      const data = JSON.stringify(blog);
-      res.end(data);
+      data.current.comments = rsl;
+      const returnData = JSON.stringify(data);
+      res.end(returnData);
     })
   },
   //  提交评论
