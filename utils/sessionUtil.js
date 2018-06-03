@@ -1,5 +1,5 @@
 const fs = require('fs');
-const users = require('./users/users.json');
+const users = require('../users/users.json');
 const session = {
   getSession () {
     return users;

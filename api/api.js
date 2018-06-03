@@ -1,9 +1,9 @@
 //用户登录—前端发送登录请求—后端保存用户 cookies—页面刷新 —前端判断用户id存在—显示登录状态—用户退出—前端发送退出请求–后端清空用户cookies—页面刷新—前端判断用户id不存在—-显示需要登录的界面
 
 //  工具类
-const mysqlUtil = require('../mysqlUtil.js');
-const dataUtil = require('../dataUtil.js');
-const session = require('../session.js');
+const mysqlUtil = require('../utils/mysqlUtil.js');
+const dataUtil = require('../utils/dataUtil.js');
+const session = require('../utils/sessionUtil.js');
 const cookieUtil = require('../utils/cookieUtil.js');
 
 //  处理上传的文件
@@ -17,8 +17,9 @@ const crypto = require('crypto');
 //  正式代码
 let api = {
   //查询数据并返回
-  queryArticlesData (req, res) {
-    const selectSql = 'SELECT * FROM article';
+  queryArticlesData (req, res, urlInfo) {
+    const selectSql = 'SELECT * FROM article where support = 1 limit ' + urlInfo.query.start + ',' + urlInfo.query.end;
+    console.log(selectSql)
     mysqlUtil.query(selectSql, (rsl) => {
       console.log('博客列表查询成功');
       res.end(JSON.stringify(rsl));
@@ -134,7 +135,7 @@ let api = {
     form.encoding = 'utf-8';
 
     //  这一步是设置文件上传处理之后的保存位置
-    form.uploadDir = path.join(__dirname, '../imgs')
+    form.uploadDir = path.join(__dirname, '../assets/imgs')
     form.parse(req, (err, fields, files) => {
       if (err) {
         console.log(err);
@@ -142,12 +143,13 @@ let api = {
       }
 
       //  由于文件保存之后会自动随机生成一个名字，所以利用nodejs的rename方法更改为上传时候的文件名
-      fs.rename(files.portrait.path, path.join(__dirname, '../imgs/'+files.portrait.name), (err) => {
+      const imgName = Date.now() + files.portrait.name;
+      fs.rename(files.portrait.path, path.join(__dirname, '../assets/imgs/' + imgName), (err) => {
         if(err){
           console.log(err);
           res.end('图片上传失败');
         }else{
-          res.end(files.portrait.name);
+          res.end(imgName);
         }
       });
     })
@@ -155,7 +157,7 @@ let api = {
   //  返回图片
   returnImg (req, res, reqName) {
     const imgName = reqName.split('/')[1];
-    const imgSrc = path.join(__dirname, '../imgs/'+imgName);
+    const imgSrc = path.join(__dirname, '../assets/imgs/'+imgName);
     fs.readFile(imgSrc, (err, data) => {
       if(err){
         console.log(imgSrc)

@@ -1,25 +1,8 @@
-const http = require('http');
-const url = require('url');
+const api = require('../api/api.js');
 
-// const mysqlUtil = require('./mysqlUtil.js');//关于数据库的操作
-// const dataUtil = require('./dataUtil.js');//处理数据格式
-const api = require('./api/api.js')
-
-const port = 3000;
-const host = '127.0.0.8';
-let count = 0;
-http.createServer((req, res) => {
-  //设置允许跨域
-  res.setHeader('Access-Control-Allow-Origin', 'http://localhost:8080');
-  //  为了跨域设置cookie
-  res.setHeader('Access-Control-Allow-Credentials', true);
-
-  //处理url里包含的信息
-  const urlInfo = url.parse(req.url, true);
-  const baseName = urlInfo.query.baseName;
+exports.route = (req, res, urlInfo) => {
   const reqName = urlInfo.pathname.substring(1);
-  //请求的类型
-  const method = req.method.toLowerCase();
+
   if(reqName === 'loginIn'){//  登录
     api.loginIn(req, res);
   }
@@ -35,8 +18,8 @@ http.createServer((req, res) => {
   if(reqName === 'portrait'){// 保存头像
     api.getPortrait(req, res);
   }
-  if(reqName === 'articles'){// 文章列表
-    api.queryArticlesData(req, res);
+  if(reqName === 'support'){// 文章列表
+    api.queryArticlesData(req, res, urlInfo);
   }
   if(reqName === 'article'){//  文章
     api.getBlogById(req, res, urlInfo.query.id);
@@ -53,9 +36,8 @@ http.createServer((req, res) => {
   if(reqName === 'editInfo'){
     api.editUserInfo(req, res);
   }
-  console.log(reqName)
   if(reqName === 'self'){
     api.selfInfo(req, res, urlInfo.query.name)
   }
-}).listen(port, host);
-console.log('Server running at http:' + host + ':' + port);
+
+}

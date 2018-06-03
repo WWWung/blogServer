@@ -1,17 +1,11 @@
 const mysql = require('mysql');
+const config = require('../config/config.js')
 
 //  promise的包,具体如何promise化query函数还在构思 zzz
 // const Q = require('q');
 
 //创建连接池
-const pool = mysql.createPool({
-  host: 'gz-cdb-jm7yuqdy.sql.tencentcdb.com',
-  port: 62691,
-  user: 'root',
-  password: 'wj531096404',
-  database: 'blog',
-  multipleStatements: true  //  这个属性设置为true之后可以执行多条sql语句，以；分割
-})
+const pool = mysql.createPool(config.mysql)
 
 //增删改查函数
 exports.query = function (selectSql, callback) {
