@@ -18,7 +18,10 @@ const crypto = require('crypto');
 let api = {
   //查询数据并返回
   queryArticlesData (req, res, urlInfo) {
-    const selectSql = 'SELECT * FROM article where support = 1 limit ' + urlInfo.query.start + ',' + urlInfo.query.end;
+    const start = urlInfo.query.start || 0;
+    const end = urlInfo.query.end || 5;
+    console.log(urlInfo)
+    const selectSql = 'SELECT * FROM article where support = 1 limit ' + start + ',' + end;
     console.log(selectSql)
     mysqlUtil.query(selectSql, (rsl) => {
       console.log('博客列表查询成功');
