@@ -20,9 +20,7 @@ let api = {
   queryArticlesData (req, res, urlInfo) {
     const start = urlInfo.query.start || 0;
     const end = urlInfo.query.end || 5;
-    console.log(urlInfo)
     const selectSql = 'SELECT * FROM article where support = 1 limit ' + start + ',' + end;
-    console.log(selectSql)
     mysqlUtil.query(selectSql, (rsl) => {
       console.log('博客列表查询成功');
       res.end(JSON.stringify(rsl));
@@ -130,7 +128,7 @@ let api = {
       })
     })
   },
-  //上传头像
+  //上传图片
   getPortrait (req, res) {
     const form = new formidable.IncomingForm();
     //保留文件扩展名
@@ -146,7 +144,7 @@ let api = {
       }
 
       //  由于文件保存之后会自动随机生成一个名字，所以利用nodejs的rename方法更改为上传时候的文件名
-      const imgName = Date.now() + files.portrait.name;
+      const imgName = Date.now() + files.image.name;
       fs.rename(files.portrait.path, path.join(__dirname, '../assets/imgs/' + imgName), (err) => {
         if(err){
           console.log(err);
