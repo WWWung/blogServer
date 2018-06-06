@@ -276,6 +276,22 @@ let api = {
         res.end('账号不存在');
       }
     })
+  },
+  //  根据id查找已有的博客（编辑博客）
+  editBlogById (req, res, id) {
+    const sql = 'select * from  article where id=' + id;
+    mysqlUtil.query(sql, rsl => {
+      if (rsl.length) {
+        console.log('博客查询成功');
+        res.end(JSON.stringify(rsl[0]));
+      } else {
+        console.log('博客不存在');
+        res.writeHead(404, {
+          'Content-Type': 'text/plain'
+        });
+        res.end('博客不存在');
+      }
+    })
   }
 }
 
