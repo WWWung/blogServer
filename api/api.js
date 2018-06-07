@@ -36,9 +36,16 @@ let api = {
       postData += chunk;
     })
     req.on('end', () => {
-      const sqlData = dataUtil.handleData(postData);
-      const selectSql = 'INSERT INTO article set ' + sqlData;
-      mysqlUtil.query(selectSql, () => {
+      const data = JSON.parse(postData);
+      const sqlData = dataUtil.handleData(data);
+      const id = data.id;
+      let sql = "";
+      if (id === undefined) {
+        sql = 'insert into article set ' + sqlData;
+      } else {
+        sql = 'update article set ' + sqlData + 'where id=' + id;
+      }
+      mysqlUtil.query(sql, () => {
         console.log('博客提交成功');
         res.end();
       });
