@@ -10,6 +10,7 @@ const cookieUtil = require('../utils/cookieUtil.js');
 const fs = require('fs');
 const formidable = require('formidable');
 const path = require('path');
+const cheerio = require('cheerio')
 
 //  md5加密模块
 const crypto = require('crypto');
@@ -21,9 +22,20 @@ let api = {
     const start = urlInfo.query.start || 0;
     const end = urlInfo.query.end || 5;
     const selectSql = 'SELECT * FROM article where support = 1 limit ' + start + ',' + end;
-    console.log(start, end)
-    mysqlUtil.query(selectSql, (rsl) => {
+    mysqlUtil.query(selectSql, rsl => {
       console.log('博客列表查询成功');
+      //  通过cheerio模块解析博客的html文档内容，并且判断里面是否有图片，如果有，把第一张图片的信息保存下来
+      for (let i=0; i<rsl.length; i++) {
+        const $ = cheerio.load(rsl[i].content);
+        if ($('img').length) {
+          rsl[i].thumbnail = {
+            src: $('img').eq(0).attr('src'),
+            alt: $('img').eq(0).attr('alt')
+          }
+        } else {
+          rsl[i].thumbnail = null;
+        }
+      }
       res.end(JSON.stringify(rsl));
     })
   },
