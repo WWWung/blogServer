@@ -254,7 +254,6 @@ let api = {
     req.on('end', () => {
       const sqlData = dataUtil.handleData(postData);
       const sql = 'insert into comment set ' + sqlData;
-      console.log(sql)
       mysqlUtil.query(sql, () => {
         console.log('评论成功');
         res.end();
@@ -311,6 +310,22 @@ let api = {
         });
         res.end('博客不存在');
       }
+    })
+  },
+  //  发送私信
+  sendSecretMessage (req, res) {
+    let postData = '';
+    req.on('data', chunk => {
+      postData += chunk;
+    })
+    req.on('end', err => {
+      const message = JSON.parse(postData);
+      const sqlData = dataUtil.handleData(postData);
+      const sql = 'insert into secret_message set ' + sqlData;
+      mysqlUtil.query(sql, () => {
+        console.log('私信发送成功');
+        res.end();
+      })
     })
   }
 }

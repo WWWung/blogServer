@@ -42,4 +42,7 @@ exports.route = (req, res, urlInfo) => {
   if (reqName === 'edit') {
     api.editBlogById(req, res, urlInfo.query.id);
   }
+  if (reqName === 'message') {
+    api.sendSecretMessage(req, res);
+  }
 }
