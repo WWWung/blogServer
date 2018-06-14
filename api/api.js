@@ -330,9 +330,9 @@ let api = {
   },
   //  返回未读状态的私信数量
   returnUnreadMsg (req, res, receiveId) {
-    const sql = 'select * from secret_message where id=' + receiveId + ' and status = 0';
+    const sql = 'select * from secret_message where receiveId=' + receiveId + ' and status = 0';
     mysqlUtil.query(sql, rsl => {
-      res.end(rsl.length);
+      res.end(JSON.stringify(rsl));
     })
   }
 }

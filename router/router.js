@@ -45,4 +45,7 @@ exports.route = (req, res, urlInfo) => {
   if (reqName === 'message') {
     api.sendSecretMessage(req, res);
   }
+  if (reqName === 'unreadmsg') {
+    api.returnUnreadMsg(req, res, urlInfo.query.receiveId)
+  }
 }
