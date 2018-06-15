@@ -1,4 +1,3 @@
-//用户登录—前端发送登录请求—后端保存用户 cookies—页面刷新 —前端判断用户id存在—显示登录状态—用户退出—前端发送退出请求–后端清空用户cookies—页面刷新—前端判断用户id不存在—-显示需要登录的界面
 
 //  工具类
 const mysqlUtil = require('../utils/mysqlUtil.js');
@@ -9,11 +8,18 @@ const cookieUtil = require('../utils/cookieUtil.js');
 //  处理上传的文件
 const fs = require('fs');
 const formidable = require('formidable');
+
+//  路径
 const path = require('path');
+
+//  处理html字符串，语法类似于jq
 const cheerio = require('cheerio')
 
 //  md5加密模块
 const crypto = require('crypto');
+
+//  异步流程控制
+const async = require('async')
 
 //  正式代码
 let api = {
@@ -22,7 +28,15 @@ let api = {
     const start = urlInfo.query.start || 0;
     const end = urlInfo.query.end || 5;
     const selectSql = 'SELECT * FROM article where support = 1 limit ' + start + ',' + end;
-    mysqlUtil.query(selectSql, rsl => {
+    mysqlUtil.query(selectSql, (err, rsl) => {
+      if (err) {
+        console.log('博客列表查询失败');
+        res.writeHead(403, {
+          'Content-Type': 'text/plain'
+        })
+        res.end();
+        return false;
+      }
       console.log('博客列表查询成功');
       //  通过cheerio模块解析博客的html文档内容，并且判断里面是否有图片，如果有，把第一张图片的信息保存下来
       for (let i=0; i<rsl.length; i++) {
@@ -41,14 +55,19 @@ let api = {
   },
   //  新增博客
   insertDataToArticle (req, res) {
-    res.writeHead(200, {
-      'Content-Type': 'text/json'
-    })
     let postData = '';
     req.on('data', (chunk) => {
       postData += chunk;
     })
-    req.on('end', () => {
+    req.on('end', err => {
+      if (err) {
+        console.log('博客插入失败');
+        res.writeHead(403, {
+          'Content-Type': 'text/plain'
+        })
+        res.end();
+        return false;
+      }
       const data = JSON.parse(postData);
       const sqlData = dataUtil.handleData(data);
       const id = data.id;
@@ -79,7 +98,15 @@ let api = {
       }
       const user = JSON.parse(postData);
       const selectSql = "select * from users where name='" + user.name + "' limit 1" ;
-      mysqlUtil.query(selectSql, (rsl) => {
+      mysqlUtil.query(selectSql, (err, rsl) => {
+        if (err) {
+          console.log('登录失败');
+          res.writeHead(403, {
+            'Content-Type': 'text/plain'
+          })
+          res.end();
+          return false;
+        }
         if (!rsl.length || rsl[0].pwd !== user.psw) {
           res.end('账号或密码错误');
           return;
@@ -124,7 +151,15 @@ let api = {
     req.on('end', () => {
       const user = JSON.parse(postData);
       const selectSql = "select * from users where name='" + user.name + "' limit 1 ";
-      mysqlUtil.query(selectSql, (rsl) => {
+      mysqlUtil.query(selectSql, (err, rsl) => {
+        if (err) {
+          console.log('账号注册失败');
+          res.writeHead(403, {
+            'Content-Type': 'text/plain'
+          })
+          res.end();
+          return false;
+        }
         if (rsl.length) {
           res.end('账号已存在');
           return;
@@ -201,25 +236,54 @@ let api = {
   },
   //  根据id获取某一篇博文及其评论
   getBlogById (req, res, id) {
-    const sql = 'select * from article where id = ' + id + '; select * from article where id < ' + id + ' order by id desc limit 1; select * from article where id > ' + id + ' order by id asc limit 1'
-    mysqlUtil.query(sql, rsl => {
-      //  执行多条sql语句的时候返回值是一个数组，数组项是依次执行查询语句的结果
-      if (!rsl[0].length) {
-        res.writeHead(404, {
-          'Content-Type': 'text/plain'
-        })
-        res.end('页面未找到');
-        return;
+    // const sql = 'select * from article where id = ' + id + '; select * from article where id < ' + id + ' order by id desc limit 1; select * from article where id > ' + id + ' order by id asc limit 1'
+    // mysqlUtil.query(sql, (err, rsl) => {
+    //   //  执行多条sql语句的时候返回值是一个数组，数组项是依次执行查询语句的结果
+    //   if (!rsl[0].length) {
+    //     res.writeHead(404, {
+    //       'Content-Type': 'text/plain'
+    //     })
+    //     res.end('页面未找到');
+    //     return;
+    //   }
+    //   res.writeHead(200, {
+    //     'Content-Type': 'text/json'
+    //   })
+    //   //  提取博客下的评论
+    //   let data = {
+    //     current: rsl[0][0],
+    //     prev: rsl[1].length?rsl[1][0]:null,
+    //     next: rsl[2].length?rsl[2][0]:null
+    //   }
+    //   this.getCommentsByBlogId(req, res, data);
+    // })
+    let data = {};
+    const sqls = [
+      {
+        sql: 'select * from article where id=' + id,
+        name: 'current'
+      },
+      {
+        sql: 'select * from article where id<' + id + ' order by id desc limit 1',
+        name: 'prev'
+      },
+      {
+        sql: 'select * from article where id>' + id + ' order by id asc limit 1',
+        name: 'next'
       }
-      res.writeHead(200, {
-        'Content-Type': 'text/json'
+    ]
+    async.each(sqls, (item, callback) => {
+      mysqlUtil.query(item.sql, (err, rsl) => {
+        callback(err);
+        if (!err) {
+          data[item.name] = rsl[0];
+        }
       })
-      //  提取博客下的评论
-      let data = {
-        current: rsl[0][0],
-        prev: rsl[1].length?rsl[1][0]:null,
-        next: rsl[2].length?rsl[2][0]:null
+    }, err => {
+      if (err) {
+        console.log(err)
       }
+      console.log(data)
       this.getCommentsByBlogId(req, res, data);
     })
   },
@@ -238,7 +302,15 @@ let api = {
   //  根据博客id获取相应的评论
   getCommentsByBlogId (req, res, data) {
     const sql = "select * from comment where blogId=" + data.current.id;
-    mysqlUtil.query(sql, rsl => {
+    mysqlUtil.query(sql, (err, rsl) => {
+      if (err) {
+        console.log('评论列表查询失败');
+        res.writeHead(403, {
+          'Content-Type': 'text/plain'
+        })
+        res.end();
+        return false;
+      }
       console.log('博客评论查询成功');
       data.current.comments = rsl;
       const returnData = JSON.stringify(data);
@@ -254,7 +326,15 @@ let api = {
     req.on('end', () => {
       const sqlData = dataUtil.handleData(postData);
       const sql = 'insert into comment set ' + sqlData;
-      mysqlUtil.query(sql, () => {
+      mysqlUtil.query(sql, (err) => {
+        if (err) {
+          console.log('评论信息插入失败');
+          res.writeHead(403, {
+            'Content-Type': 'text/plain'
+          })
+          res.end();
+          return false;
+        }
         console.log('评论成功');
         res.end();
       })
@@ -271,7 +351,15 @@ let api = {
       const id = user.id;
       const sqlData = dataUtil.handleData(user);
       const sql = 'update users set ' + sqlData + ' where id=' + id;
-      mysqlUtil.query(sql, () => {
+      mysqlUtil.query(sql, (err) => {
+        if (err) {
+          console.log('个人信息更新失败');
+          res.writeHead(403, {
+            'Content-Type': 'text/plain'
+          })
+          res.end();
+          return false;
+        }
         console.log('个人信息更新成功');
         //  更新session
         const sessionId = cookieUtil.getSessionIdfromCookie(req.headers.cookie);
@@ -286,7 +374,15 @@ let api = {
   //  查看个人信息
   selfInfo (req, res, name) {
     const sql = 'select * from users where name="' + name + '"';
-    mysqlUtil.query(sql, rsl => {
+    mysqlUtil.query(sql, (err, rsl) => {
+      if (err) {
+        console.log('个人信息查询失败');
+        res.writeHead(403, {
+          'Content-Type': 'text/plain'
+        })
+        res.end();
+        return false;
+      }
       if (rsl.length) {
         console.log('查看个人信息成功');
         res.end(JSON.stringify(rsl[0]));
@@ -299,7 +395,15 @@ let api = {
   //  根据id查找已有的博客（编辑博客）
   editBlogById (req, res, id) {
     const sql = 'select * from  article where id=' + id;
-    mysqlUtil.query(sql, rsl => {
+    mysqlUtil.query(sql, (err, rsl) => {
+      if (err) {
+        console.log('博客查询失败');
+        res.writeHead(403, {
+          'Content-Type': 'text/plain'
+        })
+        res.end();
+        return false;
+      }
       if (rsl.length) {
         console.log('博客查询成功');
         res.end(JSON.stringify(rsl[0]));
@@ -322,7 +426,15 @@ let api = {
       const message = JSON.parse(postData);
       const sqlData = dataUtil.handleData(postData);
       const sql = 'insert into secret_message set ' + sqlData;
-      mysqlUtil.query(sql, () => {
+      mysqlUtil.query(sql, (err) => {
+        if (err) {
+          console.log('私信插入失败');
+          res.writeHead(403, {
+            'Content-Type': 'text/plain'
+          })
+          res.end();
+          return false;
+        }
         console.log('私信发送成功');
         res.end();
       })
@@ -331,8 +443,44 @@ let api = {
   //  返回未读状态的私信数量
   returnUnreadMsg (req, res, receiveId) {
     const sql = 'select * from secret_message where receiveId=' + receiveId + ' and status = 0';
-    mysqlUtil.query(sql, rsl => {
+    mysqlUtil.query(sql, (err, rsl) => {
+      if (err) {
+        console.log('私信查询失败');
+        res.writeHead(403, {
+          'Content-Type': 'text/plain'
+        })
+        res.end();
+        return false;
+      }
       res.end(JSON.stringify(rsl));
+    })
+  },
+  //  获取某用户的私信列表
+  getMsgList (req, res, userId) {
+    async.waterfall([
+      callback => {
+        const sql = 'select * from secret_message where receiveId=' + userId;
+        mysqlUtil.query(sql, (err, rsl1) => {
+          callback(err, rsl1)
+        })
+      },
+      (rsl1, callback) => {
+        const sql = 'select * from secret_message where sendId=' + userId;
+        mysqlUtil.query(sql, (err, rsl2) => {
+          callback(err, rsl2)
+        })
+      }
+    ], (err, rsl1, rsl2) => {
+      if (err) {
+        console.log('查询出错');
+        console.log(err);
+        res.writeHead(403, {
+          'Content-Type': 'text/plain'
+        })
+        res.end();
+        return false;
+      }
+      
     })
   }
 }
