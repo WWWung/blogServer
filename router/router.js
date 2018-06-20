@@ -46,6 +46,9 @@ exports.route = (req, res, urlInfo) => {
     api.sendSecretMessage(req, res);
   }
   if (reqName === 'unreadmsg') {
-    api.returnUnreadMsg(req, res, urlInfo.query.receiveId)
+    api.returnUnreadMsg(req, res, urlInfo.query.receiveId);
+  }
+  if (reqName === 'messagelist') {
+    api.getMsgList(req, res, urlInfo.query.id);
   }
 }

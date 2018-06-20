@@ -1,4 +1,4 @@
-d
+
 //  工具类
 const mysqlUtil = require('../utils/mysqlUtil.js');
 const dataUtil = require('../utils/dataUtil.js');
@@ -423,10 +423,29 @@ let api = {
       postData += chunk;
     })
     req.on('end', err => {
-      const message = JSON.parse(postData);
-      const sqlData = dataUtil.handleData(postData);
-      const sql = 'insert into secret_message set ' + sqlData;
-      mysqlUtil.query(sql, (err) => {
+      const message1 = JSON.parse(postData);
+      const message2 = JSON.parse(postData);
+      //  创建两个对象，收件人和发件人各一份
+      //  userid属性代表这条私信属于哪个用户，friendid代表与userid交互的用户
+      //  这样设计的目的在于，把每条私信创建了两份，在查表的时候更加方便，同时当某一方删除私信的时候，另一方不受影响
+      //  劣势：使数据库变得冗余；两份content占用过多空间（可以把content再单独做一份表，因为两份私信的内容是相同的）
+      message1.userId = message1.sendId;
+      message1.friendId = message1.receiveId;
+
+      message2.userId = message1.receiveId;
+      message2.friendId = message1.sendId;
+
+      const datas = [
+        dataUtil.handleData(message1),
+        dataUtil.handleData(message2)
+      ];
+
+      async.each(datas, (sqlData, callback) => {
+        const sql = 'insert into secret_message set ' + sqlData;
+        mysqlUtil.query(sql, err => {
+          callback(err);
+        })
+      }, err => {
         if (err) {
           console.log('私信插入失败');
           res.writeHead(403, {
@@ -442,7 +461,7 @@ let api = {
   },
   //  返回未读状态的私信数量
   returnUnreadMsg (req, res, receiveId) {
-    const sql = 'select * from secret_message where receiveId=' + receiveId + ' and status = 0';
+    const sql = 'select * from secret_message where receiveId=' + receiveId + ' and status = 0 and userId=' + receiveId;
     mysqlUtil.query(sql, (err, rsl) => {
       if (err) {
         console.log('私信查询失败');
@@ -455,19 +474,32 @@ let api = {
       res.end(JSON.stringify(rsl));
     })
   },
-  //  获取某用户的私信列表
+  getMsgList (req, res, userId) {
+    
+  }
+  //  获取某用户的私信列表-------------------（虽然用了async模块，但还是嵌套了多层回调函数，代码有待优化...）
+  /*
+  * 逻辑梳理:
+  *   1. 用async.waterfall执行两次数据库查询，获取该用户收和发的所有私信
+  *   2. 把用户的收发私信拼接成一个数组，然后用async.each根据数组中每一项的sendid查找所有私信的发信人信息
+  *   3. 同2，查询数组中每一项的收信人信息
+  */
+  /*
+  放弃这种写法
   getMsgList (req, res, userId) {
     async.waterfall([
+      //  查询该用户接收到的所有私信
       callback => {
         const sql = 'select * from secret_message where receiveId=' + userId;
         mysqlUtil.query(sql, (err, rsl1) => {
           callback(err, rsl1)
         })
       },
+      //  查询该用户发送出去的所有私信
       (rsl1, callback) => {
         const sql = 'select * from secret_message where sendId=' + userId;
         mysqlUtil.query(sql, (err, rsl2) => {
-          callback(err, rsl2)
+          callback(err, rsl1, rsl2)
         })
       }
     ], (err, rsl1, rsl2) => {
@@ -480,9 +512,55 @@ let api = {
         res.end();
         return false;
       }
-      
+      //  将该用户收发的私信拼接成一个数组
+      const data = rsl1.concat(rsl2);
+      async.each(data, (item, callback) => {
+
+        const sendSql = 'select * from users where id=' + item.sendId;
+        mysqlUtil.query(sendSql, (err, rsl) => {
+          callback(err);
+          if (rsl.length) {
+            item['sendUserInfo'] = rsl[0];
+          } else {
+            item['sendUserInfo'] = null;
+          }
+        })
+      }, err => {
+        if (err) {
+          console.log(err);
+          console.log('用户查询失败');
+          res.writeHead(403, {
+            'Content-Type': 'text/plain'
+          })
+          res.end();
+          return false;
+        }
+        async.each(data, (item, callback) => {
+          const receiveSql = 'select * from users where id=' + item.receiveId;
+          mysqlUtil.query(receiveSql, (err, rsl) => {
+            callback(err);
+            if (rsl.length) {
+              item['receiveUserInfo'] = rsl[0];
+            } else {
+              item['receiveUserInfo'] = null;
+            }
+          })
+        }, err => {
+          if (err) {
+            console.log(err);
+            console.log('用户查询失败');
+            res.writeHead(403, {
+              'Content-Type': 'text/plain'
+            })
+            res.end();
+            return false;
+          }
+          res.end(JSON.stringify(data))
+        })
+      })
     })
   }
+  */
 }
 
 module.exports = api;
