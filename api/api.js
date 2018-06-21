@@ -283,7 +283,6 @@ let api = {
       if (err) {
         console.log(err)
       }
-      console.log(data)
       this.getCommentsByBlogId(req, res, data);
     })
   },
@@ -301,6 +300,7 @@ let api = {
     },
   //  根据博客id获取相应的评论
   getCommentsByBlogId (req, res, data) {
+    console.log(data)
     const sql = "select * from comment where blogId=" + data.current.id;
     mysqlUtil.query(sql, (err, rsl) => {
       if (err) {
@@ -429,11 +429,13 @@ let api = {
       //  userid属性代表这条私信属于哪个用户，friendid代表与userid交互的用户
       //  这样设计的目的在于，把每条私信创建了两份，在查表的时候更加方便，同时当某一方删除私信的时候，另一方不受影响
       //  劣势：使数据库变得冗余；两份content占用过多空间（可以把content再单独做一份表，因为两份私信的内容是相同的）
-      message1.userId = message1.sendId;
-      message1.friendId = message1.receiveId;
 
-      message2.userId = message1.receiveId;
-      message2.friendId = message1.sendId;
+      //  type 0 代表是发送的信息 type 1代表是接收的信息
+      message1.type = 0;
+
+      message2.userId = message1.friendId;
+      message2.friendId = message1.userId;
+      message2.type = 1;
 
       const datas = [
         dataUtil.handleData(message1),
@@ -461,9 +463,10 @@ let api = {
   },
   //  返回未读状态的私信数量
   returnUnreadMsg (req, res, receiveId) {
-    const sql = 'select * from secret_message where receiveId=' + receiveId + ' and status = 0 and userId=' + receiveId;
+    const sql = 'select * from secret_message where type=1 and status = 0 and userId=' + receiveId;
     mysqlUtil.query(sql, (err, rsl) => {
       if (err) {
+        console.log(err);
         console.log('私信查询失败');
         res.writeHead(403, {
           'Content-Type': 'text/plain'
@@ -475,7 +478,36 @@ let api = {
     })
   },
   getMsgList (req, res, userId) {
-    
+    const msgSql = 'select *,max(time) from secret_message where userId=' + userId + ' group by friendId';
+    mysqlUtil.query(msgSql, (err, rsl) => {
+      if (err) {
+        console.log(err);
+        console.log('查询私信列表失败');
+        res.writeHead(403, {
+          'Content-Type': 'text/plain'
+        })
+        res.end();
+        return false;
+      }
+      async.each(rsl, (item, callback) => {
+        const sql = 'select name, imageUrl from users where id=' + item.friendId;
+        mysqlUtil.query(sql, (err, rsl2) => {
+          item.friendInfo = rsl2[0];
+          callback(err);
+        })
+      }, err => {
+        if (err) {
+          console.log(err);
+          console.log('查询用户资料失败');
+          res.writeHead(403, {
+            'Content-Type': 'text/plain'
+          })
+          res.end();
+          return false;
+        }
+        res.end(JSON.stringify(rsl));
+      })
+    })
   }
   //  获取某用户的私信列表-------------------（虽然用了async模块，但还是嵌套了多层回调函数，代码有待优化...）
   /*
