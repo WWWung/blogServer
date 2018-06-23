@@ -51,4 +51,7 @@ exports.route = (req, res, urlInfo) => {
   if (reqName === 'messagelist') {
     api.getMsgList(req, res, urlInfo.query.id);
   }
+  if (reqName === 'chat') {
+    api.getChatList(req, res, urlInfo.query);
+  }
 }

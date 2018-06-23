@@ -477,6 +477,7 @@ let api = {
       res.end(JSON.stringify(rsl));
     })
   },
+  //  获取与所有人的收发信息中的时间最晚一条
   getMsgList (req, res, userId) {
     const msgSql = 'select *,max(time) from secret_message where userId=' + userId + ' group by friendId';
     mysqlUtil.query(msgSql, (err, rsl) => {
@@ -490,7 +491,7 @@ let api = {
         return false;
       }
       async.each(rsl, (item, callback) => {
-        const sql = 'select name, imageUrl from users where id=' + item.friendId;
+        const sql = 'select id, name, imageUrl from users where id=' + item.friendId;
         mysqlUtil.query(sql, (err, rsl2) => {
           item.friendInfo = rsl2[0];
           callback(err);
@@ -508,91 +509,34 @@ let api = {
         res.end(JSON.stringify(rsl));
       })
     })
-  }
-  //  获取某用户的私信列表-------------------（虽然用了async模块，但还是嵌套了多层回调函数，代码有待优化...）
-  /*
-  * 逻辑梳理:
-  *   1. 用async.waterfall执行两次数据库查询，获取该用户收和发的所有私信
-  *   2. 把用户的收发私信拼接成一个数组，然后用async.each根据数组中每一项的sendid查找所有私信的发信人信息
-  *   3. 同2，查询数组中每一项的收信人信息
-  */
-  /*
-  放弃这种写法
-  getMsgList (req, res, userId) {
-    async.waterfall([
-      //  查询该用户接收到的所有私信
-      callback => {
-        const sql = 'select * from secret_message where receiveId=' + userId;
-        mysqlUtil.query(sql, (err, rsl1) => {
-          callback(err, rsl1)
-        })
-      },
-      //  查询该用户发送出去的所有私信
-      (rsl1, callback) => {
-        const sql = 'select * from secret_message where sendId=' + userId;
-        mysqlUtil.query(sql, (err, rsl2) => {
-          callback(err, rsl1, rsl2)
-        })
-      }
-    ], (err, rsl1, rsl2) => {
+  },
+  //  获取与某个人的所有私信记录
+  getChatList (req, res, query) {
+    if (typeof query.userId !== 'string' || typeof query.friendId !== 'string') {
+      console.log('url参数不全');
+      res.writeHead(403, {
+        'Content-Type': 'text/plain'
+      })
+      res.end();
+      return false;
+    }
+    const start = query.start || 0;
+    const count = query.count || 5;
+
+    const sql = 'select * from secret_message where friendId=' + query.friendId + ' and userId=' + query.userId + ' order by time asc limit ' + start + ',' + count;
+    mysqlUtil.query(sql, (err, rsl) => {
       if (err) {
-        console.log('查询出错');
         console.log(err);
+        console.log('查询聊天记录失败');
         res.writeHead(403, {
           'Content-Type': 'text/plain'
         })
         res.end();
         return false;
       }
-      //  将该用户收发的私信拼接成一个数组
-      const data = rsl1.concat(rsl2);
-      async.each(data, (item, callback) => {
-
-        const sendSql = 'select * from users where id=' + item.sendId;
-        mysqlUtil.query(sendSql, (err, rsl) => {
-          callback(err);
-          if (rsl.length) {
-            item['sendUserInfo'] = rsl[0];
-          } else {
-            item['sendUserInfo'] = null;
-          }
-        })
-      }, err => {
-        if (err) {
-          console.log(err);
-          console.log('用户查询失败');
-          res.writeHead(403, {
-            'Content-Type': 'text/plain'
-          })
-          res.end();
-          return false;
-        }
-        async.each(data, (item, callback) => {
-          const receiveSql = 'select * from users where id=' + item.receiveId;
-          mysqlUtil.query(receiveSql, (err, rsl) => {
-            callback(err);
-            if (rsl.length) {
-              item['receiveUserInfo'] = rsl[0];
-            } else {
-              item['receiveUserInfo'] = null;
-            }
-          })
-        }, err => {
-          if (err) {
-            console.log(err);
-            console.log('用户查询失败');
-            res.writeHead(403, {
-              'Content-Type': 'text/plain'
-            })
-            res.end();
-            return false;
-          }
-          res.end(JSON.stringify(data))
-        })
-      })
+      res.end(JSON.stringify(rsl));
     })
   }
-  */
 }
 
 module.exports = api;
