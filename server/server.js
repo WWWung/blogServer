@@ -18,10 +18,11 @@ exports.start = route => {
 
   io.on('connection', socket => {
     console.log('安排上了');
-    console.log(io.sockets.sockets);
-    socket.emit('test', {data: '我是服务器发给客户端的'})
+    // console.log(io.sockets.sockets);
+    // socket.emit('test', {data: '我是服务器发给客户端的'})
     socket.on('my other event', data => {
-      console.log(data)
+      console.log(io.sockets.sockets[data.id])
+      // socket.emit('test', {data: '我是服务器发给客户端的'})
     })
   })
 
