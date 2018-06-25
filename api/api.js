@@ -523,8 +523,26 @@ let api = {
     const start = query.start || 0;
     const count = query.count || 5;
 
-    const sql = 'select * from secret_message where friendId=' + query.friendId + ' and userId=' + query.userId + ' order by time asc limit ' + start + ',' + count;
-    mysqlUtil.query(sql, (err, rsl) => {
+    const sqls = [
+      {
+        name: 'data',
+        sql: 'select * from secret_message where friendId=' + query.friendId + ' and userId=' + query.userId + ' order by time asc limit ' + start + ',' + count
+      },
+      {
+        name: 'total',
+        sql: 'select count(*) from secret_message'
+      }
+    ]
+    let data = {
+      start,
+      count
+    };
+    async.each(sqls, (sql, callback) => {
+      mysqlUtil.query(sql.sql, (err, rsl) => {
+        data[sql.name] = rsl
+        callback(err)
+      })
+    }, err => {
       if (err) {
         console.log(err);
         console.log('查询聊天记录失败');
@@ -534,7 +552,7 @@ let api = {
         res.end();
         return false;
       }
-      res.end(JSON.stringify(rsl));
+      res.end(JSON.stringify(data))
     })
   }
 }
