@@ -1,6 +1,7 @@
 const http = require('http');
 const url = require('url');
 const config = require('../config/config.js');
+const io = require('../io/io.js');
 
 exports.start = route => {
   const server = http.createServer((req, res) => {
@@ -12,19 +13,10 @@ exports.start = route => {
     //  根据url传的参数执行函数
     route(req, res, urlInfo);
   })
-  const io = require('socket.io')(server);
+  // const io = require('socket.io')(server);
 
   server.listen(config.server.port, config.server.host);
-
-  io.on('connection', socket => {
-    console.log('安排上了');
-    // console.log(io.sockets.sockets);
-    // socket.emit('test', {data: '我是服务器发给客户端的'})
-    socket.on('my other event', data => {
-      console.log(io.sockets.sockets[data.id])
-      // socket.emit('test', {data: '我是服务器发给客户端的'})
-    })
-  })
+  io.io(server);
 
   console.log('Server running at http:' + config.server.host + ':' + config.server.port);
 }
