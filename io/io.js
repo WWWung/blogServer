@@ -38,22 +38,25 @@ function getChatMessageByIo (message1, io, sockets) {
   message2.friendId = message1.userId;
   message2.type = 1;
 
-  const sql2 = 'insert into secret_message set ' + dataUtil.handleData(message2)
+  const sql2 = 'insert into secret_message set ' + dataUtil.handleData(message2);
+  let ioId1 = ioUtil.findClient(message2.userId, sockets);
+  if (ioId1 !== null) {
+    message2.status = 1;
+  }
   mysqlUtil.query(sql2, (err, rsl) => {
     if (err) {
       console.log(err);
       console.log('插入私信出错');
     } else {
-      const ioId = ioUtil.findClient(message2.userId, sockets);
-      if (ioId !== null) {
+      if (ioId1 !== null) {
         message2.id = rsl.insertId;
-        io.sockets.sockets[ioId].emit('chat with friend (from server to target)', message2);
+        io.sockets.sockets[ioId1].emit('chat with friend (from server to target)', message2);
       }
       console.log('插入私信成功');
     }
   });
 
-  const sql1 = 'insert into secret_message set ' + dataUtil.handleData(message1)
+  const sql1 = 'insert into secret_message set ' + dataUtil.handleData(message1);
   mysqlUtil.query(sql1, (err, rsl) => {
     if (err) {
       console.log(err);
