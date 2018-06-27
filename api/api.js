@@ -479,7 +479,7 @@ let api = {
   },
   //  获取与所有人的收发信息中的时间最晚一条
   getMsgList (req, res, userId) {
-    const msgSql = 'select *,max(time) from secret_message where userId=' + userId + ' group by friendId';
+    const msgSql = 'select * from secret_message as b where not exists(select 1 from secret_message where friendId= b.friendId and b.time<time ) and userId=' + userId;
     mysqlUtil.query(msgSql, (err, rsl) => {
       if (err) {
         console.log(err);
@@ -526,11 +526,11 @@ let api = {
     const sqls = [
       {
         name: 'data',
-        sql: 'select * from secret_message where friendId=' + query.friendId + ' and userId=' + query.userId + ' order by time asc limit ' + start + ',' + count
+        sql: 'select * from secret_message where friendId=' + query.friendId + ' and userId=' + query.userId + ' order by time desc limit ' + start + ',' + count
       },
       {
         name: 'total',
-        sql: 'select count(*) from secret_message'
+        sql: 'select count(id) from secret_message where userId=' + query.userId + ' and friendId=' + query.friendId
       }
     ]
     let data = {
@@ -539,7 +539,7 @@ let api = {
     };
     async.each(sqls, (sql, callback) => {
       mysqlUtil.query(sql.sql, (err, rsl) => {
-        data[sql.name] = rsl
+        data[sql.name] = sql.name === 'data' ? rsl : rsl[0]['count(id)']
         callback(err)
       })
     }, err => {
