@@ -54,4 +54,7 @@ exports.route = (req, res, urlInfo) => {
   if (reqName === 'chat') {
     api.getChatList(req, res, urlInfo.query);
   }
+  if (reqName === 'readAll') {
+    api.readAllChat(req, res, urlInfo.query);
+  }
 }

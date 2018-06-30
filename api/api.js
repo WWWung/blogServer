@@ -534,8 +534,8 @@ let api = {
       }
     ]
     let data = {
-      start,
-      count
+      start: Number.parseInt(start),
+      count: Number.parseInt(count)
     };
     async.each(sqls, (sql, callback) => {
       mysqlUtil.query(sql.sql, (err, rsl) => {
@@ -553,6 +553,29 @@ let api = {
         return false;
       }
       res.end(JSON.stringify(data))
+      //  从数据库返回数据的时候同时把这个数据里接收的信息全部设置为已读
+      const readsql = 'update secret_message set status=1 where status=0 and type=1 and userId=' + query.userId + ' and friendId=' + query.friendId + ' order by time desc limit ' + count;
+      mysqlUtil.query(readsql, err => {
+        if (err) {
+          console.log('设置已读失败');
+        } else {
+          console.log('设置已读成功');
+        }
+      })
+    })
+  },
+  //  阅读与某人的私信记录
+  readAllChat (req, res, query) {
+    const sql = 'update secret_message set status=1 where status=0 and type=1 and userId=' + query.userId;
+    mysqlUtil.query(sql, err => {
+      if (err) {
+        console.log('设置所有消息已读失败')
+        console.log(err);
+        res.end('设置所有消息已读失败');
+      } else {
+        console.log('设置所有消息已读成功');
+        res.end('设置所有消息已读成功');
+      }
     })
   }
 }
