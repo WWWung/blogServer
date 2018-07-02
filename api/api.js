@@ -274,10 +274,9 @@ let api = {
     ]
     async.each(sqls, (item, callback) => {
       mysqlUtil.query(item.sql, (err, rsl) => {
+        console.log(rsl)
+        data[item.name] = rsl[0];
         callback(err);
-        if (!err) {
-          data[item.name] = rsl[0];
-        }
       })
     }, err => {
       if (err) {
@@ -301,7 +300,7 @@ let api = {
   //  根据博客id获取相应的评论
   getCommentsByBlogId (req, res, data) {
     console.log(data)
-    const sql = "select * from comment where blogId=" + data.current.id;
+    const sql = "select * from comment where blogId=" + data.current.id + ' order by time desc';
     mysqlUtil.query(sql, (err, rsl) => {
       if (err) {
         console.log('评论列表查询失败');
@@ -479,7 +478,8 @@ let api = {
   },
   //  获取与所有人的收发信息中的时间最晚一条
   getMsgList (req, res, userId) {
-    const msgSql = 'select * from secret_message as b where not exists(select 1 from secret_message where friendId= b.friendId and b.time<time ) and userId=' + userId;
+    //  先按时间顺序排列所有的私信。然后再按friendId分组。最后再按时间顺序排序一遍 (该方法在mysql5.6以上不可用，因为高版本会先执行group by再执行order by)
+    const msgSql = 'select * from (select * from secret_message where userId=' + userId + ' ORDER BY time desc) as a group by a.friendId order by a.time desc';
     mysqlUtil.query(msgSql, (err, rsl) => {
       if (err) {
         console.log(err);
