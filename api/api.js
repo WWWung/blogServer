@@ -523,6 +523,22 @@ let api = {
     const start = query.start || 0;
     const count = query.count || 5;
 
+    // const sql = `select id, content, time, status, userId, friendId, type, count(id) as total from secret_message
+    //             where friendId=` + query.friendId
+    //             + ` and userId=` + query.userId
+    //             + ` order by time desc limit `
+    //             + start + ',' + count;
+    // mysqlUtil.query(sql, (err, rsl) => {
+    //   console.log()
+    //   const data = {
+    //     data: rsl,
+    //     start: Number.parseInt(start),
+    //     count: Number.parseInt(count),
+    //     total: rsl[0].count
+    //   }
+    //   res.end(JSON.stringify(data));
+    // })
+
     const sqls = [
       {
         name: 'data',
@@ -530,7 +546,7 @@ let api = {
       },
       {
         name: 'total',
-        sql: 'select count(id) from secret_message where userId=' + query.userId + ' and friendId=' + query.friendId
+        sql: 'select count(id) as total from secret_message where userId=' + query.userId + ' and friendId=' + query.friendId
       }
     ]
     let data = {
@@ -539,7 +555,7 @@ let api = {
     };
     async.each(sqls, (sql, callback) => {
       mysqlUtil.query(sql.sql, (err, rsl) => {
-        data[sql.name] = sql.name === 'data' ? rsl : rsl[0]['count(id)']
+        data[sql.name] = rsl
         callback(err)
       })
     }, err => {
@@ -576,6 +592,43 @@ let api = {
         console.log('设置所有消息已读成功');
         res.end('设置所有消息已读成功');
       }
+    })
+  },
+  //  插入留言
+  leaveWords (req, res) {
+    let data = '';
+    req.on('data', chunk => {
+      data += chunk;
+    })
+    req.on('end', () => {
+      const sqlData = dataUtil.handleData();
+      const sql = 'insert into words set ' + sqlData;
+      mysqlUtil.query(sql, (err, rsl) => {
+        if (err) {
+          console.log('留言插入失败');
+          res.writeHead(403, {
+            'Content-Type': 'text/plain'
+          })
+          res.end();
+          return false;
+        }
+        res.end();
+      })
+    })
+  },
+  //  查询留言
+  getLeaveWords (req, res, query) {
+    const sql = 'select id, userId, content, time, reply from words order by time desc limit ' + query.start + ', ' + query.count;
+    mysqlUtil.query(sql, (err, rsl) => {
+      if (err) {
+        console.log('获取留言列表失败');
+        res.writeHead(403, {
+          'Content-Type': 'text/plain'
+        })
+        res.end();
+        return false;
+      }
+      // const
     })
   }
 }

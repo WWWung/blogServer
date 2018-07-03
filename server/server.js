@@ -11,7 +11,11 @@ exports.start = route => {
     //  为了跨域设置cookie
     res.setHeader('Access-Control-Allow-Credentials', true);
     //  根据url传的参数执行函数
-    route(req, res, urlInfo);
+    try {
+      route(req, res, urlInfo);
+    } catch (e) {
+      console.log(e)
+    }
   })
   // const io = require('socket.io')(server);
 
