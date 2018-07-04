@@ -14,7 +14,8 @@ exports.start = route => {
     try {
       route(req, res, urlInfo);
     } catch (e) {
-      console.log(e)
+      console.log('错误已捕获');
+      console.log(e);
     }
   })
   // const io = require('socket.io')(server);

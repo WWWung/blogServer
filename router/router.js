@@ -57,4 +57,10 @@ exports.route = (req, res, urlInfo) => {
   if (reqName === 'readAll') {
     api.readAllChat(req, res, urlInfo.query);
   }
+  if (reqName === 'getwords') {
+    api.getLeaveWords(req, res, urlInfo.query);
+  }
+  if (reqName === 'leaveword') {
+    api.leaveWord(req, res);
+  }
 }

@@ -478,6 +478,13 @@ let api = {
   },
   //  获取与所有人的收发信息中的时间最晚一条
   getMsgList (req, res, userId) {
+    // 这种sql返回的顺序不固定，原因未知，待续...
+    // const msgSql = 'select a.id, content, time, status, userId, type, friendId, name, imageUrl '
+    //              + 'from (select * from secret_message where userId=' + userId + ' ORDER BY time desc) as a, users '
+    //              + 'where a.friendId=users.id '
+    //              + 'group by friendId '
+    //              + 'order by time desc';
+
     //  先按时间顺序排列所有的私信。然后再按friendId分组。最后再按时间顺序排序一遍 (该方法在mysql5.6以上不可用，因为高版本会先执行group by再执行order by)
     const msgSql = 'select * from (select * from secret_message where userId=' + userId + ' ORDER BY time desc) as a group by a.friendId order by a.time desc';
     mysqlUtil.query(msgSql, (err, rsl) => {
@@ -490,10 +497,13 @@ let api = {
         res.end();
         return false;
       }
+      // res.end(JSON.stringify(rsl));
+
       async.each(rsl, (item, callback) => {
         const sql = 'select id, name, imageUrl from users where id=' + item.friendId;
         mysqlUtil.query(sql, (err, rsl2) => {
-          item.friendInfo = rsl2[0];
+          item.imageUrl = rsl2[0].imageUrl;
+          item.name = rsl2[0].name;
           callback(err);
         })
       }, err => {
@@ -555,6 +565,10 @@ let api = {
     };
     async.each(sqls, (sql, callback) => {
       mysqlUtil.query(sql.sql, (err, rsl) => {
+        if (sql.name === 'data') {
+          console.log(rsl);
+          console.log('-------------------------------------------------------------------')
+        }
         data[sql.name] = rsl
         callback(err)
       })
@@ -595,16 +609,18 @@ let api = {
     })
   },
   //  插入留言
-  leaveWords (req, res) {
+  leaveWord (req, res) {
     let data = '';
     req.on('data', chunk => {
       data += chunk;
     })
     req.on('end', () => {
-      const sqlData = dataUtil.handleData();
+      const sqlData = dataUtil.handleData(data);
+      console.log(data)
       const sql = 'insert into words set ' + sqlData;
       mysqlUtil.query(sql, (err, rsl) => {
         if (err) {
+          console.log(err);
           console.log('留言插入失败');
           res.writeHead(403, {
             'Content-Type': 'text/plain'
@@ -618,17 +634,41 @@ let api = {
   },
   //  查询留言
   getLeaveWords (req, res, query) {
-    const sql = 'select id, userId, content, time, reply from words order by time desc limit ' + query.start + ', ' + query.count;
-    mysqlUtil.query(sql, (err, rsl) => {
+    const page = query.page || 1;
+    const pageCount = query.pageCount || 20;
+    const limitStart = (page - 1) * pageCount;
+    const data = {
+      page: Number.parseInt(page),
+      pageCount: Number.parseInt(pageCount),
+    }
+    async.waterfall([
+      cb => {
+        const sql = 'select words.id, userId, content, time, reply, name, imageUrl '
+                  + 'from words, users where words.userId=users.id '
+                  + 'order by words.time desc limit ' + limitStart + ', ' + pageCount;
+        mysqlUtil.query(sql, (err, rsl1) => {
+          cb(err, rsl1);
+        })
+      },
+      (rsl1, cb) => {
+        const sql = 'select count(id) as total from words';
+        mysqlUtil.query(sql, (err, rsl2) => {
+          cb(err, rsl1, rsl2);
+        })
+      }
+    ], (err, rsl1, rsl2) => {
       if (err) {
-        console.log('获取留言列表失败');
+        console.log(err);
+        console.log('查询留言记录失败');
         res.writeHead(403, {
           'Content-Type': 'text/plain'
         })
         res.end();
         return false;
       }
-      // const
+      data.data = rsl1;
+      data.total = rsl2[0].total;
+      res.end(JSON.stringify(data))
     })
   }
 }
