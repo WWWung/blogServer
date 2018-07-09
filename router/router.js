@@ -63,4 +63,7 @@ exports.route = (req, res, urlInfo) => {
   if (reqName === 'leaveword') {
     api.leaveWord(req, res);
   }
+  if (reqName === 'readreply') {
+    api.getReplyList(req, res, urlInfo.query);
+  }
 }

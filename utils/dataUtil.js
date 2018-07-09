@@ -9,7 +9,8 @@ exports.handleData =  (data, type) => {
     try {
       target = JSON.parse(data);
     } catch (e) {
-      return '请效验数据格式'
+      console.log('请效验数据格式');
+      return '';
     }
   }else if(typeof data === 'object'){
     target = data;

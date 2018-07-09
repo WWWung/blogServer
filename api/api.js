@@ -150,7 +150,7 @@ let api = {
     })
     req.on('end', () => {
       const user = JSON.parse(postData);
-      const selectSql = "select * from users where name='" + user.name + "' limit 1 ";
+      const selectSql = "select id from users where name='" + user.name + "' limit 1 ";
       mysqlUtil.query(selectSql, (err, rsl) => {
         if (err) {
           console.log('账号注册失败');
@@ -264,11 +264,11 @@ let api = {
         name: 'current'
       },
       {
-        sql: 'select * from article where id<' + id + ' order by id desc limit 1',
+        sql: 'select id, title from article where id<' + id + ' order by id desc limit 1',
         name: 'prev'
       },
       {
-        sql: 'select * from article where id>' + id + ' order by id asc limit 1',
+        sql: 'select id, title from article where id>' + id + ' order by id asc limit 1',
         name: 'next'
       }
     ]
@@ -372,7 +372,7 @@ let api = {
   },
   //  查看个人信息
   selfInfo (req, res, name) {
-    const sql = 'select * from users where name="' + name + '"';
+    const sql = 'select id, name, phone, sex, qq, email, address, lastLoginIp, birthday, description, imageUrl, school, registerTime, weibo, locked from users where name="' + name + '"';
     mysqlUtil.query(sql, (err, rsl) => {
       if (err) {
         console.log('个人信息查询失败');
@@ -642,10 +642,19 @@ let api = {
       pageCount: Number.parseInt(pageCount),
     }
     async.waterfall([
+      /*
+      #select words.id, userId, content, time, reply, name, imageUrl from words, users where words.userId=users.id
+      select c.id, c.userId, c.reply, c.content, c.replyContent, c.replyUserId, c.targetName, users.name as name, imageUrl from
+      ((select b.id, b.userId, b.reply, b.content, b.replyContent, b.replyUserId, users.name as targetName from
+      (select a.userId, a.id, a.reply, a.content as content, words.content as replyContent, words.userId as replyUserId from words as a left join words on a.reply=words.id) as b
+      left join users on b.replyUserId=users.id)) as c inner join users on c.userId=users.id
+      */
       cb => {
-        const sql = 'select words.id, userId, content, time, reply, name, imageUrl '
-                  + 'from words, users where words.userId=users.id '
-                  + 'order by words.time desc limit ' + limitStart + ', ' + pageCount;
+        const sql = 'select b.id, b.userId, b.content, b.time, b.reply, b.replyContent, b.targetName, users.name as name, imageUrl from '
+                  + '(select words.id, userId, content, time, reply, a.content as replyContent, a.name as targetName '
+                  + 'from words, (select words.id as wordsId, content, userId, name from words, users where userId=users.id) as a '
+                  + 'where words.reply=a.wordsId) as b,'
+                  + 'users where b.userId=users.id'
         mysqlUtil.query(sql, (err, rsl1) => {
           cb(err, rsl1);
         })
@@ -668,9 +677,65 @@ let api = {
       }
       data.data = rsl1;
       data.total = rsl2[0].total;
-      res.end(JSON.stringify(data))
+      res.end(JSON.stringify(data));
     })
-  }
+  },
+  //  查看用户留言与某人的所有对话(已放弃！！！)
+  // getReplyList (req, res, query) {
+  //   const page = query.page || 1;
+  //   const pageCount = query.pageCount || 20;
+  //   const limitStart = (page - 1) * pageCount;
+  //   const data = {
+  //     page: Number.parseInt(page),
+  //     pageCount: Number.parseInt(pageCount),
+  //   }
+  //   if (page === 1) {
+  //     pageCount--;
+  //   }
+  //   async.waterfall([
+  //     cb => {
+  //       //  第一层子查询c，通过回复的留言id查询到要回复的作者id，根据作者id和传参过来的用户id查询这两个用户之间的所有的对话
+  //       //  第二层子查询b，通过第一层查询结果里的userid找到找到这个user的头像链接和名字
+  //       //  第三层子查询d，通过第二层查询结果里的reply
+  //       const sql = 'select d.id, d.userId, content, time, reply, d.name, d.imageUrl, users.name as targetName from'
+  //                 + '(select b.id, b,userId, content, time, reply, users.name as name, imageUrl, startUserId from '
+  //                 + '(select id, userId, content, time, reply, c.userId as startUserId from words, (select userId from words where id=' + query.targetId + ') as c '
+  //                 + 'where (reply=c.userId and words.userId=' + query.userId
+  //                 + ') or (reply=' + query.userId + ' and words.userId=c.userId) ) as b, users where b.userId=users.id) as d, users'
+  //                 + 'where d.startUserId=users.id'
+  //                 + 'order by time limit' + limitStart + ',' + pageCount;
+  //       mysqlUtil.query(sql, (err, rsl1) => {
+  //         cb(err, rsl1);
+  //       })
+  //     },
+  //     (rsl1, cb) => {
+  //       const sql = 'select count(id) as total from words, (select userId from words where id=' + query.targetId + ') as c '
+  //                 + 'where (reply=c.userId and words.userId=' + query.userId
+  //                 + ') or (reply=' + query.userId + ' and words.userId=c.userId) ';
+  //       mysqlUtil.query(sql, (err, rsl2) => {
+  //         cb(err, rsl1, rsl2);
+  //       })
+  //     }
+  //     // (rsl1, rsl2, cb) => {
+  //     //   if (page === 1) {
+  //     //     const sql = 'select id, userId, content, time, reply from words where id=' + query.targetId;
+  //     //   }
+  //     // }
+  //   ], (err, rsl1, rsl2) => {
+  //     if (err) {
+  //       console.log(err);
+  //       console.log('查询留言对话失败');
+  //       res.writeHead(403, {
+  //         'Content-Type': 'text/plain'
+  //       })
+  //       res.end();
+  //       return false;
+  //     }
+  //     data.data = rsl1;
+  //     data.total = rsl2[0].total;
+  //     res.end(JSON.stringify(data));
+  //   })
+  // }
 }
 
 module.exports = api;
