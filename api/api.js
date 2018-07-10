@@ -276,6 +276,12 @@ let api = {
       }
       rsl[0].comments = rsl2;
       res.end(JSON.stringify(rsl[0]));
+      const sql = 'update article set clickNumber=clickNumber+1 where id=' + id;
+      mysqlUtil.query(sql, (err, rsl, f) => {
+        if (err) {
+          console.log(err)
+        }
+      })
     })
   },
   //  退出登录
