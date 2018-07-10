@@ -18,7 +18,7 @@ exports.route = (req, res, urlInfo) => {
   if (reqName === 'portrait') {// 保存头像
     api.getPortrait(req, res);
   }
-  if (reqName === 'support') {// 文章列表
+  if (reqName === 'blogs') {// 文章列表
     api.queryArticlesData(req, res, urlInfo);
   }
   if (reqName === 'article') {//  文章

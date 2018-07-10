@@ -15,7 +15,8 @@ exports.query = function (selectSql, callback) {
       console.log('连接数据库出错');
       return;
     }
-    con.query(selectSql, (cerr, rsl, fields) => {
+    const sql = selectSql.replace(/\n/ig, ' ');
+    con.query(sql, (cerr, rsl, fields) => {
       // if(cerr){
       //   console.log(cerr)
       //   console.log('数据库查询出错');
@@ -24,7 +25,7 @@ exports.query = function (selectSql, callback) {
       //  2018.06.15 更改：把报错信息在回调函数中处理
       con.release();
       //  释放链接（如果不加这句代码，访问十次数据库之后就会访问不上）
-      typeof callback === 'function' && callback(cerr, rsl);
+      typeof callback === 'function' && callback(cerr, rsl, fields);
     })
   })
 }

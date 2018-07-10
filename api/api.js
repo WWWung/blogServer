@@ -23,11 +23,12 @@ const async = require('async')
 
 //  正式代码
 let api = {
-  //查询数据并返回
+  //查询博客列表数据并返回
   queryArticlesData (req, res, urlInfo) {
     const start = urlInfo.query.start || 0;
     const end = urlInfo.query.end || 5;
-    const selectSql = 'SELECT * FROM article where support = 1 limit ' + start + ',' + end;
+    const mold = urlInfo.query.mold || 0;
+    const selectSql = 'SELECT id, title, time, clickNumber, userId, type, up, support, star, mold, content, textContent FROM article where mold = ' + mold + ' limit ' + start + ',' + end;
     mysqlUtil.query(selectSql, (err, rsl) => {
       if (err) {
         console.log('博客列表查询失败');
@@ -167,7 +168,7 @@ let api = {
         //验证通过之后设置session并返回消息
         const sqlData = dataUtil.handleData(postData);
         const selectSql = "insert into users set " + sqlData;
-        mysqlUtil.query(selectSql, () => {
+        mysqlUtil.query(selectSql, (r, f) => {
           const hash = crypto.createHash('md5');
           hash.update(user.name);
           const sessionId = hash.digest('hex');
@@ -178,7 +179,11 @@ let api = {
           session.setSession(Object.assign({
             sessionId
           }, user));
-          res.end('账号注册成功');
+          const data = {
+            msg: '账号注册成功',
+            id: f.insertId
+          }
+          res.end(JSON.stringify(data));
         })
       })
     })
@@ -236,53 +241,41 @@ let api = {
   },
   //  根据id获取某一篇博文及其评论
   getBlogById (req, res, id) {
-    // const sql = 'select * from article where id = ' + id + '; select * from article where id < ' + id + ' order by id desc limit 1; select * from article where id > ' + id + ' order by id asc limit 1'
-    // mysqlUtil.query(sql, (err, rsl) => {
-    //   //  执行多条sql语句的时候返回值是一个数组，数组项是依次执行查询语句的结果
-    //   if (!rsl[0].length) {
-    //     res.writeHead(404, {
-    //       'Content-Type': 'text/plain'
-    //     })
-    //     res.end('页面未找到');
-    //     return;
-    //   }
-    //   res.writeHead(200, {
-    //     'Content-Type': 'text/json'
-    //   })
-    //   //  提取博客下的评论
-    //   let data = {
-    //     current: rsl[0][0],
-    //     prev: rsl[1].length?rsl[1][0]:null,
-    //     next: rsl[2].length?rsl[2][0]:null
-    //   }
-    //   this.getCommentsByBlogId(req, res, data);
-    // })
-    let data = {};
-    const sqls = [
-      {
-        sql: 'select * from article where id=' + id,
-        name: 'current'
+    //==========================================================================================
+    async.waterfall([
+      cb => {
+        const sql = `select commentNumber, id, title, time, clickNumber userId, type, content, up, mold, star, prevTitle, prevId, nextId, nextTitle from
+                    (select c.id, c.title, c.time as time, c.clickNumber as clickNumber, c.userId as userId, c.type as type, c.content as content, c.up as up, c.mold as mold, c.star as star, c.prevTitle, c.prevId, d.id as nextId, d.title as nextTitle from
+                    (select a.id as id, a.title as title, a.time as time, a.clickNumber as clickNumber, a.userId as userId, a.type as type, a.content as content, a.up as up, a.mold as mold, a.star as star, b.title as prevTitle, b.id as prevId from
+                    (select id, title, time, clickNumber, userId, type, content, up, support, star, mold from article where id=` + id + `)
+                    as a left join
+                    (select id, title from article where id<` + id + ` order by id desc limit 1)
+                    as b on a.id>b.id) as c left join
+                    (select id, title from article where id>` + id + ` order by id asc limit 1)
+                    as d on c.id<d.id) as e,
+                    (select count(id) as commentNumber from comment where blogId=1) as f`;
+        mysqlUtil.query(sql, (err, rsl) => {
+          cb(err, rsl)
+        })
       },
-      {
-        sql: 'select id, title from article where id<' + id + ' order by id desc limit 1',
-        name: 'prev'
-      },
-      {
-        sql: 'select id, title from article where id>' + id + ' order by id asc limit 1',
-        name: 'next'
+      (rsl, cb) => {
+        const sql = 'select comment.id, userId, blogId, content, time, floor, users.name as username, users.imageUrl as imgUrl from comment, users where blogId=' + id + ' and users.id=userId order by time desc'
+        mysqlUtil.query(sql, (err, rsl2) => {
+          cb(err, rsl, rsl2)
+        })
       }
-    ]
-    async.each(sqls, (item, callback) => {
-      mysqlUtil.query(item.sql, (err, rsl) => {
-        console.log(rsl)
-        data[item.name] = rsl[0];
-        callback(err);
-      })
-    }, err => {
-      if (err) {
-        console.log(err)
+    ], (err, rsl, rsl2) => {
+      if (err || !rsl.length) {
+        console.log('文章查询失败');
+        console.log(err);
+        res.writeHead(403, {
+          'Content-Type': 'text/plain'
+        })
+        res.end();
+        return false;
       }
-      this.getCommentsByBlogId(req, res, data);
+      rsl[0].comments = rsl2;
+      res.end(JSON.stringify(rsl[0]));
     })
   },
   //  退出登录
@@ -644,17 +637,20 @@ let api = {
     async.waterfall([
       /*
       #select words.id, userId, content, time, reply, name, imageUrl from words, users where words.userId=users.id
-      select c.id, c.userId, c.reply, c.content, c.replyContent, c.replyUserId, c.targetName, users.name as name, imageUrl from
-      ((select b.id, b.userId, b.reply, b.content, b.replyContent, b.replyUserId, users.name as targetName from
-      (select a.userId, a.id, a.reply, a.content as content, words.content as replyContent, words.userId as replyUserId from words as a left join words on a.reply=words.id) as b
-      left join users on b.replyUserId=users.id)) as c inner join users on c.userId=users.id
+      select c.id, c.userId, c.time, c.reply, c.content, c.replyContent, c.replyUserId, c.targetName, users.name as name, imageUrl from
+      ((select b.id, b.userId, b.time, b.reply, b.content, b.replyContent, b.replyUserId, users.name as targetName from
+      (select a.userId, a.id, a.reply, a.time, a.content as content, words.content as replyContent, words.userId as replyUserId from words as a left join words on a.reply=words.id) as b
+      left join users on b.replyUserId=users.id)) as c inner join users on c.userId=users.id order by time desc
+
+      先用words表连接words表（根据reply的id查询回复留言的内容和作者id=replyUserId）得到表b
+      再用b和users连接（根据replyUserId查询回复的作者名字）得到表c
+      再用c和users连接（根据userid查询到这条留言的作者名字和作者头像链接）
       */
       cb => {
-        const sql = 'select b.id, b.userId, b.content, b.time, b.reply, b.replyContent, b.targetName, users.name as name, imageUrl from '
-                  + '(select words.id, userId, content, time, reply, a.content as replyContent, a.name as targetName '
-                  + 'from words, (select words.id as wordsId, content, userId, name from words, users where userId=users.id) as a '
-                  + 'where words.reply=a.wordsId) as b,'
-                  + 'users where b.userId=users.id'
+        const sql = 'select c.id, c.userId, c.time, c.reply, c.content, c.replyContent, c.replyUserId, c.targetName, users.name as name, imageUrl from '
+                  + '((select b.id, b.userId, b.time, b.reply, b.content, b.replyContent, b.replyUserId, users.name as targetName from '
+                  + '(select a.userId, a.id, a.reply, a.time, a.content as content, words.content as replyContent, words.userId as replyUserId from words as a left join words on a.reply=words.id) as b '
+                  + 'left join users on b.replyUserId=users.id)) as c inner join users on c.userId=users.id order by time desc';
         mysqlUtil.query(sql, (err, rsl1) => {
           cb(err, rsl1);
         })
