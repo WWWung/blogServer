@@ -30,40 +30,43 @@ exports.route = (req, res, urlInfo) => {
   if (reqName === 'loginOut') {// 退出登录
     api.loginOut(req, res);
   }
-  if (reqName === 'subComent') {
+  if (reqName === 'subComent') {//  提交评论
     api.insertCommentToBlog(req, res);
   }
-  if (reqName === 'editInfo') {
+  if (reqName === 'editInfo') {// 编辑个人资料
     api.editUserInfo(req, res);
   }
-  if (reqName === 'self') {
+  if (reqName === 'self') {// 查看个人资料
     api.selfInfo(req, res, urlInfo.query.name);
   }
-  if (reqName === 'edit') {
+  if (reqName === 'edit') {// 编辑博客
     api.editBlogById(req, res, urlInfo.query.id);
   }
-  if (reqName === 'message') {
+  if (reqName === 'message') {//  发送私信
     api.sendSecretMessage(req, res);
   }
-  if (reqName === 'unreadmsg') {
+  if (reqName === 'unreadmsg') {//  返回未读消息
     api.returnUnreadMsg(req, res, urlInfo.query.receiveId);
   }
-  if (reqName === 'messagelist') {
+  if (reqName === 'messagelist') {//  返回私信列表
     api.getMsgList(req, res, urlInfo.query.id);
   }
-  if (reqName === 'chat') {
+  if (reqName === 'chat') {// 返回聊天记录
     api.getChatList(req, res, urlInfo.query);
   }
-  if (reqName === 'readAll') {
+  if (reqName === 'readAll') {//  设置所有消息已读
     api.readAllChat(req, res, urlInfo.query);
   }
-  if (reqName === 'getwords') {
+  if (reqName === 'getwords') {// 返回留言列表
     api.getLeaveWords(req, res, urlInfo.query);
   }
-  if (reqName === 'leaveword') {
+  if (reqName === 'leaveword') {//  留言
     api.leaveWord(req, res);
   }
-  if (reqName === 'readreply') {
+  if (reqName === 'readreply') {//  查看回复
     api.getReplyList(req, res, urlInfo.query);
+  }
+  if (reqName === 'comments') {// 查看博客评论
+    api.getCommentsByBlogId(req, res, urlInfo.query);
   }
 }

@@ -28,7 +28,12 @@ let api = {
     const start = urlInfo.query.start || 0;
     const end = urlInfo.query.end || 5;
     const mold = urlInfo.query.mold || 0;
-    const selectSql = 'SELECT id, title, time, clickNumber, userId, type, up, support, star, mold, content, textContent FROM article where mold = ' + mold + ' limit ' + start + ',' + end;
+    const selectSql = `select id, title, time, clickNumber, userId, type, up, support, star, mold, content, textContent, ifnull(commentNumber) from
+                      (select id, title, time, clickNumber, userId, type, up, support, star, mold, content, textContent from article where mold=` + mold + `) as a
+                      left join
+                      (select count(id) as commentNumber, blogId from comment group by blogId) as b
+                      on a.id=b.blogId
+                      order by time limit ` + start + `,` + end;
     mysqlUtil.query(selectSql, (err, rsl) => {
       if (err) {
         console.log('博客列表查询失败');
@@ -241,30 +246,17 @@ let api = {
   },
   //  根据id获取某一篇博文及其评论
   getBlogById (req, res, id) {
-    //==========================================================================================
-    async.waterfall([
-      cb => {
-        const sql = `select commentNumber, id, title, time, clickNumber userId, type, content, up, mold, star, prevTitle, prevId, nextId, nextTitle from
-                    (select c.id, c.title, c.time as time, c.clickNumber as clickNumber, c.userId as userId, c.type as type, c.content as content, c.up as up, c.mold as mold, c.star as star, c.prevTitle, c.prevId, d.id as nextId, d.title as nextTitle from
-                    (select a.id as id, a.title as title, a.time as time, a.clickNumber as clickNumber, a.userId as userId, a.type as type, a.content as content, a.up as up, a.mold as mold, a.star as star, b.title as prevTitle, b.id as prevId from
-                    (select id, title, time, clickNumber, userId, type, content, up, support, star, mold from article where id=` + id + `)
-                    as a left join
-                    (select id, title from article where id<` + id + ` order by id desc limit 1)
-                    as b on a.id>b.id) as c left join
-                    (select id, title from article where id>` + id + ` order by id asc limit 1)
-                    as d on c.id<d.id) as e,
-                    (select count(id) as commentNumber from comment where blogId=1) as f`;
-        mysqlUtil.query(sql, (err, rsl) => {
-          cb(err, rsl)
-        })
-      },
-      (rsl, cb) => {
-        const sql = 'select comment.id, userId, blogId, content, time, floor, users.name as username, users.imageUrl as imgUrl from comment, users where blogId=' + id + ' and users.id=userId order by time desc'
-        mysqlUtil.query(sql, (err, rsl2) => {
-          cb(err, rsl, rsl2)
-        })
-      }
-    ], (err, rsl, rsl2) => {
+    const sql = `select commentNumber, id, title, time, clickNumber userId, type, content, up, mold, star, prevTitle, prevId, nextId, nextTitle from
+                     (select c.id, c.title, c.time as time, c.clickNumber as clickNumber, c.userId as userId, c.type as type, c.content as content, c.up as up, c.mold as mold, c.star as star, c.prevTitle, c.prevId, d.id as nextId, d.title as nextTitle from
+                     (select a.id as id, a.title as title, a.time as time, a.clickNumber as clickNumber, a.userId as userId, a.type as type, a.content as content, a.up as up, a.mold as mold, a.star as star, b.title as prevTitle, b.id as prevId from
+                     (select id, title, time, clickNumber, userId, type, content, up, support, star, mold from article where id=` + id + `)
+                     as a left join
+                     (select id, title from article where id<` + id + ` order by id desc limit 1)
+                     as b on a.id>b.id) as c left join
+                     (select id, title from article where id>` + id + ` order by id asc limit 1)
+                     as d on c.id<d.id) as e,
+                     (select count(id) as commentNumber from comment where blogId=` + id + `) as f`;
+    mysqlUtil.query(sql, (err, rsl) => {
       if (err || !rsl.length) {
         console.log('文章查询失败');
         console.log(err);
@@ -274,8 +266,8 @@ let api = {
         res.end();
         return false;
       }
-      rsl[0].comments = rsl2;
-      res.end(JSON.stringify(rsl[0]));
+      console.log('博客查询成功');
+      res.end(JSON.stringify(rsl[0]))
       const sql = 'update article set clickNumber=clickNumber+1 where id=' + id;
       mysqlUtil.query(sql, (err, rsl, f) => {
         if (err) {
@@ -283,6 +275,49 @@ let api = {
         }
       })
     })
+    //==========================================================================================
+    //  放弃这种博客和评论一起返回的方式，两者分开获取
+    // async.waterfall([
+    //   cb => {
+    //     const sql = `select commentNumber, id, title, time, clickNumber userId, type, content, up, mold, star, prevTitle, prevId, nextId, nextTitle from
+    //                 (select c.id, c.title, c.time as time, c.clickNumber as clickNumber, c.userId as userId, c.type as type, c.content as content, c.up as up, c.mold as mold, c.star as star, c.prevTitle, c.prevId, d.id as nextId, d.title as nextTitle from
+    //                 (select a.id as id, a.title as title, a.time as time, a.clickNumber as clickNumber, a.userId as userId, a.type as type, a.content as content, a.up as up, a.mold as mold, a.star as star, b.title as prevTitle, b.id as prevId from
+    //                 (select id, title, time, clickNumber, userId, type, content, up, support, star, mold from article where id=` + id + `)
+    //                 as a left join
+    //                 (select id, title from article where id<` + id + ` order by id desc limit 1)
+    //                 as b on a.id>b.id) as c left join
+    //                 (select id, title from article where id>` + id + ` order by id asc limit 1)
+    //                 as d on c.id<d.id) as e,
+    //                 (select count(id) as commentNumber from comment where blogId=` + id + `) as f`;
+    //     mysqlUtil.query(sql, (err, rsl) => {
+    //       cb(err, rsl)
+    //     })
+    //   },
+    //   (rsl, cb) => {
+    //     const sql = 'select comment.id, userId, blogId, content, time, floor, users.name as username, users.imageUrl as imgUrl from comment, users where blogId=' + id + ' and users.id=userId order by time desc'
+    //     mysqlUtil.query(sql, (err, rsl2) => {
+    //       cb(err, rsl, rsl2)
+    //     })
+    //   }
+    // ], (err, rsl, rsl2) => {
+    //   if (err || !rsl.length) {
+    //     console.log('文章查询失败');
+    //     console.log(err);
+    //     res.writeHead(403, {
+    //       'Content-Type': 'text/plain'
+    //     })
+    //     res.end();
+    //     return false;
+    //   }
+    //   rsl[0].comments = rsl2;
+    //   res.end(JSON.stringify(rsl[0]));
+    //   const sql = 'update article set clickNumber=clickNumber+1 where id=' + id;
+    //   mysqlUtil.query(sql, (err, rsl, f) => {
+    //     if (err) {
+    //       console.log(err)
+    //     }
+    //   })
+    // })
   },
   //  退出登录
   loginOut (req, res) {
@@ -297,11 +332,30 @@ let api = {
       }
     },
   //  根据博客id获取相应的评论
-  getCommentsByBlogId (req, res, data) {
-    console.log(data)
-    const sql = "select * from comment where blogId=" + data.current.id + ' order by time desc';
-    mysqlUtil.query(sql, (err, rsl) => {
+  getCommentsByBlogId (req, res, query) {
+    const page = query.page || 1;
+    const pageCount = query.pageCount || 20;
+    const limitStart = (page - 1) * pageCount;
+
+    async.waterfall([
+      cb => {
+        const sql = `select comment.id, blogId, userId, content, time, floor, users.name as username, imageUrl from comment
+                    inner join users
+                    on userId=users.id and blogId=` + query.blogId + `
+                    order by time desc limit ` + limitStart + `,` + pageCount;
+        mysqlUtil.query(sql, (err, rsl) => {
+          cb(err, rsl);
+        })
+      },
+      (rsl, cb) => {
+        const sql = 'select count(id) as total from comment where blogId=' + query.blogId;
+        mysqlUtil.query(sql, (err, rsl2) => {
+          cb(err, rsl, rsl2);
+        })
+      }
+    ], (err, rsl, rsl2) => {
       if (err) {
+        console.log(err)
         console.log('评论列表查询失败');
         res.writeHead(403, {
           'Content-Type': 'text/plain'
@@ -309,10 +363,10 @@ let api = {
         res.end();
         return false;
       }
-      console.log('博客评论查询成功');
-      data.current.comments = rsl;
-      const returnData = JSON.stringify(data);
-      res.end(returnData);
+      let data = {};
+      data.data = rsl;
+      data.count = rsl2[0].total;
+      res.end(JSON.stringify(data));
     })
   },
   //  提交评论
@@ -564,10 +618,6 @@ let api = {
     };
     async.each(sqls, (sql, callback) => {
       mysqlUtil.query(sql.sql, (err, rsl) => {
-        if (sql.name === 'data') {
-          console.log(rsl);
-          console.log('-------------------------------------------------------------------')
-        }
         data[sql.name] = rsl
         callback(err)
       })
