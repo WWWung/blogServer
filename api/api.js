@@ -28,7 +28,7 @@ let api = {
     const start = urlInfo.query.start || 0;
     const end = urlInfo.query.end || 5;
     const mold = urlInfo.query.mold || 0;
-    const selectSql = `select id, title, time, clickNumber, userId, type, up, support, star, mold, content, textContent, ifnull(commentNumber) from
+    const selectSql = `select id, title, time, clickNumber, userId, type, up, support, star, mold, content, textContent, commentNumber from
                       (select id, title, time, clickNumber, userId, type, up, support, star, mold, content, textContent from article where mold=` + mold + `) as a
                       left join
                       (select count(id) as commentNumber, blogId from comment group by blogId) as b
@@ -36,6 +36,7 @@ let api = {
                       order by time limit ` + start + `,` + end;
     mysqlUtil.query(selectSql, (err, rsl) => {
       if (err) {
+        console.log(err)
         console.log('博客列表查询失败');
         res.writeHead(403, {
           'Content-Type': 'text/plain'
