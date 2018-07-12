@@ -7,9 +7,9 @@ exports.start = route => {
   const server = http.createServer((req, res) => {
     const urlInfo = url.parse(req.url, true);
     //  设置允许跨域
-    // res.setHeader('Access-Control-Allow-Origin', 'http://localhost');
+    res.setHeader('Access-Control-Allow-Origin', 'http://localhost:8080');
 
-    res.setHeader('Access-Control-Allow-Origin', 'http://www.wwwung.cn');
+    // res.setHeader('Access-Control-Allow-Origin', 'http://www.wwwung.cn');
     //  为了跨域设置cookie
     res.setHeader('Access-Control-Allow-Credentials', true);
     //  根据url传的参数执行函数

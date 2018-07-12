@@ -247,17 +247,29 @@ let api = {
   },
   //  根据id获取某一篇博文及其评论
   getBlogById (req, res, id) {
-    const sql = `select commentNumber, id, title, time, clickNumber userId, type, content, up, mold, star, prevTitle, prevId, nextId, nextTitle from
-                     (select c.id, c.title, c.time as time, c.clickNumber as clickNumber, c.userId as userId, c.type as type, c.content as content, c.up as up, c.mold as mold, c.star as star, c.prevTitle, c.prevId, d.id as nextId, d.title as nextTitle from
-                     (select a.id as id, a.title as title, a.time as time, a.clickNumber as clickNumber, a.userId as userId, a.type as type, a.content as content, a.up as up, a.mold as mold, a.star as star, b.title as prevTitle, b.id as prevId from
-                     (select id, title, time, clickNumber, userId, type, content, up, support, star, mold from article where id=` + id + `)
-                     as a left join
-                     (select id, title from article where id<` + id + ` order by id desc limit 1)
-                     as b on a.id>b.id) as c left join
-                     (select id, title from article where id>` + id + ` order by id asc limit 1)
-                     as d on c.id<d.id) as e,
-                     (select count(id) as commentNumber from comment where blogId=` + id + `) as f`;
-    mysqlUtil.query(sql, (err, rsl) => {
+    async.waterfall([
+      cb => {
+        const sql = `select commentNumber, id, title, time, clickNumber, userId, type, content, up, mold, star, prevTitle, prevId, nextId, nextTitle from
+                         (select c.id, c.title, c.time as time, c.clickNumber as clickNumber, c.userId as userId, c.type as type, c.content as content, c.up as up, c.mold as mold, c.star as star, c.prevTitle, c.prevId, d.id as nextId, d.title as nextTitle from
+                         (select a.id as id, a.title as title, a.time as time, a.clickNumber as clickNumber, a.userId as userId, a.type as type, a.content as content, a.up as up, a.mold as mold, a.star as star, b.title as prevTitle, b.id as prevId from
+                         (select id, title, time, clickNumber, userId, type, content, up, support, star, mold from article where id=` + id + `)
+                         as a left join
+                         (select id, title from article where id<` + id + ` order by id desc limit 1)
+                         as b on a.id>b.id) as c left join
+                         (select id, title from article where id>` + id + ` order by id asc limit 1)
+                         as d on c.id<d.id) as e,
+                         (select count(id) as commentNumber from comment where blogId=` + id + `) as f`;
+        mysqlUtil.query(sql, (err, rsl) => {
+          cb(err, rsl);
+        })
+      },
+      (rsl, cb) => {
+        const sql = 'select id, userId, blogId from followed where blogId=' + id;
+        mysqlUtil.query(sql,(err, rsl2) => {
+          cb(err, rsl, rsl2);
+        })
+      }
+    ], (err, rsl, rsl2) => {
       if (err || !rsl.length) {
         console.log('文章查询失败');
         console.log(err);
@@ -267,6 +279,7 @@ let api = {
         res.end();
         return false;
       }
+      rsl[0].followedUser = rsl2;
       console.log('博客查询成功');
       res.end(JSON.stringify(rsl[0]))
       const sql = 'update article set clickNumber=clickNumber+1 where id=' + id;
@@ -789,6 +802,101 @@ let api = {
   //     res.end(JSON.stringify(data));
   //   })
   // }
+  followBlog (req, res, query) {
+    const sql = 'select id from followed where blogId=' + query.blogId + ' and userId=' + query.userId;
+    mysqlUtil.query(sql, (err1, rsl) => {
+      if (err1) {
+        console.log(err1);
+        console.log('收藏博客失败');
+        res.writeHead(403, {
+          'Content-Type': 'text/plain'
+        })
+        res.end();
+        return false;
+      }
+      if (rsl.length === 0) {
+        const sql = 'insert into followed (blogId, userId) values(' + query.blogId + ',' + query.userId + ')';
+        mysqlUtil.query(sql, (err2, fields) => {
+          if (err2) {
+            console.log(err2);
+            console.log('收藏博客失败');
+            res.writeHead(403, {
+              'Content-Type': 'text/plain'
+            })
+            res.end();
+            return false;
+          }
+          const data = {
+            id: fields.insertId,
+            msg: '收藏成功'
+          }
+          res.end(JSON.stringify(data));
+        })
+      } else {
+        const data = {
+          id: rsl[0].id,
+          msg: '已经收藏'
+        }
+        res.end(JSON.stringify(data));
+      }
+    })
+  },
+  unfollowBlog (req, res, query) {
+    const sql = 'delete from followed where blogId=' + query.blogId + ' and userId=' + query.userId;
+    mysqlUtil.query(sql, (err, rsl) => {
+      if (err) {
+        console.log(err);
+        console.log('取消收藏博客失败');
+        res.writeHead(403, {
+          'Content-Type': 'text/plain'
+        })
+        res.end();
+        return false;
+      }
+      const data = {
+        msg: '已取消收藏'
+      }
+      res.end(JSON.stringify(data));
+    })
+  },
+  getFollowlist (req, res, query) {
+    const page = query.page || 1;
+    const pageCount = query.pageCount || 20;
+    const limitStart = (page - 1) * pageCount;
+    const data = {
+      page: Number.parseInt(page),
+      pageCount: Number.parseInt(pageCount),
+    }
+    async.waterfall([
+      cb => {
+        const sql = 'select followed.id as id, followed.userId, blogId, title from followed, article where blogId=article.id and followed.userId=' + query.userId + ' limit ' + limitStart + ', ' + pageCount;
+        mysqlUtil.query(sql, (err, rsl) => {
+          cb(err, rsl);
+        })
+      },
+      (rsl, cb) => {
+        const sql = 'select count(id) as total from followed';
+        mysqlUtil.query(sql, (err, rsl2) => {
+          cb(err, rsl, rsl2);
+        })
+      }
+    ], (err, rsl, rsl2) => {
+      if (err) {
+        if (err) {
+          console.log(err);
+          console.log('获取收藏列表失败');
+          res.writeHead(403, {
+            'Content-Type': 'text/plain'
+          })
+          res.end();
+          return false;
+        }
+      }
+      data.total = rsl2[0].total;
+      data.data = rsl;
+      res.end(JSON.stringify(data));
+    })
+  }
 }
 
 module.exports = api;

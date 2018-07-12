@@ -69,4 +69,13 @@ exports.route = (req, res, urlInfo) => {
   if (reqName === 'comments') {// 查看博客评论
     api.getCommentsByBlogId(req, res, urlInfo.query);
   }
+  if (reqName === 'follow') {// 收藏博客
+    api.followBlog(req, res, urlInfo.query);
+  }
+  if (reqName === 'unfollow') {// 取消博客收藏
+    api.unfollowBlog(req, res, urlInfo.query);
+  }
+  if (reqName === 'followlist') {// 获取收藏列表
+    api.getFollowlist(req, res, urlInfo.query);
+  }
 }
