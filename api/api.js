@@ -720,7 +720,7 @@ let api = {
         const sql = 'select c.id, c.userId, c.time, c.reply, c.content, c.replyContent, c.replyUserId, c.targetName, users.name as name, imageUrl from '
                   + '((select b.id, b.userId, b.time, b.reply, b.content, b.replyContent, b.replyUserId, users.name as targetName from '
                   + '(select a.userId, a.id, a.reply, a.time, a.content as content, words.content as replyContent, words.userId as replyUserId from words as a left join words on a.reply=words.id) as b '
-                  + 'left join users on b.replyUserId=users.id)) as c inner join users on c.userId=users.id order by time desc';
+                  + 'left join users on b.replyUserId=users.id)) as c inner join users on c.userId=users.id order by time desc limit ' + limitStart + ', ' + pageCount;
         mysqlUtil.query(sql, (err, rsl1) => {
           cb(err, rsl1);
         })
@@ -863,13 +863,15 @@ let api = {
     const page = query.page || 1;
     const pageCount = query.pageCount || 20;
     const limitStart = (page - 1) * pageCount;
-    const data = {
+    let data = {
       page: Number.parseInt(page),
-      pageCount: Number.parseInt(pageCount),
+      pageCount: Number.parseInt(pageCount)
     }
     async.waterfall([
       cb => {
-        const sql = 'select followed.id as id, followed.userId, blogId, title from followed, article where blogId=article.id and followed.userId=' + query.userId + ' limit ' + limitStart + ', ' + pageCount;
+        const sql = `select a.id, a.userId, a.blogId, title, clickNumber, commentNumber from
+                    (select followed.id as id, followed.userId, blogId, title, clickNumber from followed, article where blogId=article.id and followed.userId=` + query.userId + `)
+                    as a left join (select count(id) as commentNumber, blogId from comment group by blogId) as b on b.blogId=a.blogId limit ` + limitStart + `, ` + pageCount;
         mysqlUtil.query(sql, (err, rsl) => {
           cb(err, rsl);
         })
