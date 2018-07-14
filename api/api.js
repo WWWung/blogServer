@@ -28,12 +28,14 @@ let api = {
     const start = urlInfo.query.start || 0;
     const end = urlInfo.query.end || 5;
     const mold = urlInfo.query.mold || 0;
-    const selectSql = `select id, title, time, clickNumber, userId, type, up, support, star, mold, content, textContent, commentNumber from
+    const selectSql = `select id, title, time, clickNumber, userId, type, up, support, star, mold, content, textContent, commentNumber, total from
+                      (select id, title, time, clickNumber, userId, type, up, support, star, mold, content, textContent, commentNumber from
                       (select id, title, time, clickNumber, userId, type, up, support, star, mold, content, textContent from article where mold=` + mold + `) as a
                       left join
                       (select count(id) as commentNumber, blogId from comment group by blogId) as b
-                      on a.id=b.blogId
-                      order by time limit ` + start + `,` + end;
+                      on a.id=b.blogId) as c left join
+                      (select count(id) as total from article where mold=` + mold + `) as d on c.id
+                      order by time desc limit ` + start + `,` + end;
     mysqlUtil.query(selectSql, (err, rsl) => {
       if (err) {
         console.log(err)
@@ -254,10 +256,10 @@ let api = {
                          (select a.id as id, a.title as title, a.time as time, a.clickNumber as clickNumber, a.userId as userId, a.type as type, a.content as content, a.up as up, a.mold as mold, a.star as star, b.title as prevTitle, b.id as prevId from
                          (select id, title, time, clickNumber, userId, type, content, up, support, star, mold from article where id=` + id + `)
                          as a left join
-                         (select id, title from article where id<` + id + ` order by id desc limit 1)
-                         as b on a.id>b.id) as c left join
-                         (select id, title from article where id>` + id + ` order by id asc limit 1)
-                         as d on c.id<d.id) as e,
+                         (select id, title, mold from article where id>` + id + ` order by id asc limit 1)
+                         as b on b.mold=a.mold) as c left join
+                         (select id, title, mold from article where id<` + id + ` order by id desc limit 1)
+                         as d on c.mold=d.mold) as e,
                          (select count(id) as commentNumber from comment where blogId=` + id + `) as f`;
         mysqlUtil.query(sql, (err, rsl) => {
           cb(err, rsl);
@@ -438,8 +440,8 @@ let api = {
     })
   },
   //  查看个人信息
-  selfInfo (req, res, name) {
-    const sql = 'select id, name, phone, sex, qq, email, address, lastLoginIp, birthday, description, imageUrl, school, registerTime, weibo, locked from users where name="' + name + '"';
+  selfInfo (req, res, id) {
+    const sql = 'select id, name, phone, sex, qq, email, address, lastLoginIp, birthday, description, imageUrl, school, registerTime, weibo, locked from users where id=' + id + '';
     mysqlUtil.query(sql, (err, rsl) => {
       if (err) {
         console.log('个人信息查询失败');

@@ -37,7 +37,7 @@ exports.route = (req, res, urlInfo) => {
     api.editUserInfo(req, res);
   }
   if (reqName === 'self') {// 查看个人资料
-    api.selfInfo(req, res, urlInfo.query.name);
+    api.selfInfo(req, res, urlInfo.query.id);
   }
   if (reqName === 'edit') {// 编辑博客
     api.editBlogById(req, res, urlInfo.query.id);
