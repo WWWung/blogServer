@@ -21,6 +21,7 @@ exports.io = server => {
     socket.on('chat with friend (from client)', data => {
       // api.sendSecretMessage(data);
       getChatMessageByIo(data, io, sockets);
+      console.log(sockets)
     })
 
     socket.on('disconnect', () => {
