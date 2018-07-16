@@ -138,25 +138,18 @@ let api = {
   },
   //  判断是否登录
   isLogin (req, res) {
-    // req.on('data', (chunk) => {
-    //   console.log(chunk)
-    // })
-    // req.on('end', () => {
-    //   const sessionId = cookieUtil.getSessionIdfromCookie(req.headers.cookie);
-    //   if (req.headers.cookie && sessionId) {
-    //     const user = session.querySession(sessionId);
-    //     res.end(JSON.stringify(user));
-    //     return;
-    //   }
-    //   res.end('未登录');
-    // })
-    const sessionId = cookieUtil.getSessionIdfromCookie(req.headers.cookie);
-    if (req.headers.cookie && sessionId) {
-      const user = session.querySession(sessionId);
-      res.end(JSON.stringify(user));
-      return;
-    }
-    res.end('未登录');
+    req.on('data', (chunk) => {
+      console.log(chunk)
+    })
+    req.on('end', () => {
+      const sessionId = cookieUtil.getSessionIdfromCookie(req.headers.cookie);
+      if (req.headers.cookie && sessionId) {
+        const user = session.querySession(sessionId);
+        res.end(JSON.stringify(user));
+        return;
+      }
+      res.end('未登录');
+    })
   },
   //注册账号
   registerUser (req, res) {
