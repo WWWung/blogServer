@@ -138,18 +138,25 @@ let api = {
   },
   //  判断是否登录
   isLogin (req, res) {
-    req.on('data', (chunk) => {
-      console.log(chunk)
-    })
-    req.on('end', () => {
-      const sessionId = cookieUtil.getSessionIdfromCookie(req.headers.cookie);
-      if (req.headers.cookie && sessionId) {
-        const user = session.querySession(sessionId);
-        res.end(JSON.stringify(user));
-        return;
-      }
-      res.end('未登录');
-    })
+    // req.on('data', (chunk) => {
+    //   console.log(chunk)
+    // })
+    // req.on('end', () => {
+    //   const sessionId = cookieUtil.getSessionIdfromCookie(req.headers.cookie);
+    //   if (req.headers.cookie && sessionId) {
+    //     const user = session.querySession(sessionId);
+    //     res.end(JSON.stringify(user));
+    //     return;
+    //   }
+    //   res.end('未登录');
+    // })
+    const sessionId = cookieUtil.getSessionIdfromCookie(req.headers.cookie);
+    if (req.headers.cookie && sessionId) {
+      const user = session.querySession(sessionId);
+      res.end(JSON.stringify(user));
+      return;
+    }
+    res.end('未登录');
   },
   //注册账号
   registerUser (req, res) {
@@ -212,7 +219,7 @@ let api = {
       }
 
       //  由于文件保存之后会自动随机生成一个名字，所以利用nodejs的rename方法更改为上传时候的文件名
-      const imgName = Date.now() + files.image.name;
+      const imgName = Date.now() + encodeURIComponent(files.image.name);
       fs.rename(files.image.path, path.join(__dirname, '../assets/imgs/' + imgName), (err) => {
         if(err){
           console.log(err);

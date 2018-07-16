@@ -1,7 +1,7 @@
 const config = {
   server: {
     port: 3000,
-    host: '127.0.0.8'
+    host: ''
   },
   mysql: {
     host: 'gz-cdb-jm7yuqdy.sql.tencentcdb.com',

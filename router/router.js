@@ -1,7 +1,7 @@
 const api = require('../api/api.js');
 
 exports.route = (req, res, urlInfo) => {
-  const reqName = urlInfo.pathname.substring(1);
+  const reqName = urlInfo.pathname.substring(5);
 
   if (reqName === 'loginIn') {//  登录
     api.loginIn(req, res);
