@@ -142,8 +142,12 @@ let api = {
       console.log(chunk)
     })
     req.on('end', () => {
+      console.log(sessionId)
       const sessionId = cookieUtil.getSessionIdfromCookie(req.headers.cookie);
       if (req.headers.cookie && sessionId) {
+        if (user === null) {
+          res.end('未登录');
+        }
         const user = session.querySession(sessionId);
         res.end(JSON.stringify(user));
         return;
