@@ -5,7 +5,6 @@ exports.route = (req, res, urlInfo) => {
 
   if (reqName.indexOf('imgs') > -1) {// 返回头像
     api.returnImg(req, res, reqName);
-    return false
   }
   if (reqName === 'loginIn') {//  登录
     api.loginIn(req, res);

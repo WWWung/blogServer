@@ -147,6 +147,7 @@ let api = {
         const user = session.querySession(sessionId);
         if (user === null) {
           res.end('未登录');
+          return false
         }
         res.end(JSON.stringify(user));
         return;
