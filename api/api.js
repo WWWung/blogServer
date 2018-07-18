@@ -142,7 +142,6 @@ let api = {
       console.log(chunk)
     })
     req.on('end', () => {
-      console.log(sessionId)
       const sessionId = cookieUtil.getSessionIdfromCookie(req.headers.cookie);
       if (req.headers.cookie && sessionId) {
         if (user === null) {

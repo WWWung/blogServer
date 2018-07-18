@@ -3,6 +3,10 @@ const api = require('../api/api.js');
 exports.route = (req, res, urlInfo) => {
   const reqName = urlInfo.pathname.substring(5);
 
+  if (reqName.indexOf('imgs') > -1) {// 返回头像
+    api.returnImg(req, res, reqName);
+    return false
+  }
   if (reqName === 'loginIn') {//  登录
     api.loginIn(req, res);
   }
@@ -23,9 +27,6 @@ exports.route = (req, res, urlInfo) => {
   }
   if (reqName === 'article') {//  文章
     api.getBlogById(req, res, urlInfo.query.id);
-  }
-  if (reqName.indexOf('imgs') > -1) {// 返回头像
-    api.returnImg(req, res, reqName);
   }
   if (reqName === 'loginOut') {// 退出登录
     api.loginOut(req, res);
