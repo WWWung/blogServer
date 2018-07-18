@@ -100,8 +100,8 @@ let api = {
     })
     req.on('end', () => {
       let sessionId = cookieUtil.getSessionIdfromCookie(req.headers.cookie);
-      if (req.headers.cookie && sessionId){
-        const user = session.querySession(sessionId);
+      const user = session.querySession(sessionId);
+      if (user !== null){
         res.end(JSON.stringify(user));
         return;
       }
